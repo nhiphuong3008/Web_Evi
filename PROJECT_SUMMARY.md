@@ -10,7 +10,11 @@
   - **Backend**: Python 3.12 + Flask Framework + SQLAlchemy ORM.
   - **Database**: SQLite CSDL local (`database/evi_center.db`).
   - **Frontend**: HTML5 + Vanilla CSS (Mỹ thuật hiện đại / Studio Ghibli Theme) + Vanilla JavaScript (Modular ES6).
-- **Cổng chạy (Port)**: `http://127.0.0.1:5001`.
+- **Môi trường & Địa chỉ truy cập**:
+  - 🏠 **Local Debug & Test (Máy cá nhân)**: `http://127.0.0.1:5001` (Không mở tunnel public ra ngoài).
+  - 🌐 **Production Host 24/7 (Người dùng chính thức)**: `https://vicarecrm.pythonanywhere.com`.
+  - 📦 **GitHub Repository**: `https://github.com/nhiphuong3008/Web_Evi.git`.
+
 
 ---
 

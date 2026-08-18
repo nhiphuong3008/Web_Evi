@@ -1,5 +1,18 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.0.0] - 2026-08-19
+### 🚀 Triển Khai Production Cloud 24/7 (PythonAnywhere) & Phân Tách Môi Trường Local
+- **Phân Tách Môi Trường Thực Thi & Đóng Toàn Bộ Tunnel Public Local**:
+  - Tắt toàn bộ các tiến trình Localtunnel và Auto-Keep-Alive public trên máy cá nhân.
+  - Máy cá nhân chuyển về chế độ **Local Debug & Testing thuần túy** tại `http://127.0.0.1:5001` để User/Developer phát triển tính năng an toàn, tuyệt đối không mở tunnel để tránh người dùng bên ngoài vào nhầm gây xung đột dữ liệu.
+- **Triển Khai Môi Trường Chính Thức 24/7 Trên Cloud PythonAnywhere**:
+  - Khởi tạo và cấu hình hoàn chỉnh hệ thống chạy 24/7 tại địa chỉ chính thức: `https://vicarecrm.pythonanywhere.com`.
+  - Bảo toàn 100% CSDL SQLite (`evi_center.db`) trên ổ đĩa máy chủ không lo mất dữ liệu.
+  - Expose WSGI `application` instance chuẩn hóa trong `app.py` và cập nhật đầy đủ `requirements.txt`.
+- **Tự Động Hóa Đồng Bộ Mã Nguồn Qua GitHub Repository**:
+  - Khởi tạo và kết nối Git Repository chính thức: `https://github.com/nhiphuong3008/Web_Evi.git`.
+  - Cập nhật quy tắc phát triển trong `.agents/AGENTS.md` (Quy tắc 6 & Quy tắc 7): AI sẽ tự động thực hiện quy trình Git commit/push mỗi khi User yêu cầu cập nhật code lên Host.
+
 ## [v4.9.0] - 2026-08-18
 ### 📝 Nâng Cấp Mục Nhận Xét Bài Thi (Auto-expanding Textarea, Mini Toolbar, Pop-up Editor & PDF Formatting)
 - **Nâng Cấp Giao Diện Ô Nhập Nhận Xét Bài Thi (`static/js/cm_portal.js`)**:
