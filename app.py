@@ -41,21 +41,6 @@ def create_app():
     CORS(app)
 
     # =========================================================
-    # Tự động đồng bộ CSDL từ Cloud Host khi khởi động Local Debug
-    # =========================================================
-    if getattr(config, 'AUTO_SYNC_DB_ON_STARTUP', False) and getattr(config, 'DEBUG', False):
-        if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-            try:
-                from services.sync_host_db import sync_db_from_host
-                sync_db_from_host(
-                    host_url=getattr(config, 'PRODUCTION_HOST_URL', 'https://vicarecrm.pythonanywhere.com'),
-                    secret_token=getattr(config, 'SYNC_SECRET_TOKEN', 'evi_secure_sync_token_2026_x9k2'),
-                    verbose=True
-                )
-            except Exception as sync_err:
-                logger.warning(f"Không thể tự động đồng bộ DB từ Host lúc khởi động: {sync_err}")
-
-    # =========================================================
     # Khởi tạo CSDL SQLite & Background Sync Scheduler
     # =========================================================
     from database.db_manager import init_db
@@ -114,6 +99,20 @@ application = app
 
 if __name__ == '__main__':
     config = get_config()
+
+    # Tự động đồng bộ CSDL từ Production Host khi chạy trực tiếp trên máy Local
+    is_cloud_host = 'PYTHONANYWHERE_DOMAIN' in os.environ or 'PYTHONANYWHERE_SITE' in os.environ
+    if getattr(config, 'AUTO_SYNC_DB_ON_STARTUP', False) and not is_cloud_host:
+        if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+            try:
+                from services.sync_host_db import sync_db_from_host
+                sync_db_from_host(
+                    host_url=getattr(config, 'PRODUCTION_HOST_URL', 'https://vicarecrm.pythonanywhere.com'),
+                    secret_token=getattr(config, 'SYNC_SECRET_TOKEN', 'evi_secure_sync_token_2026_x9k2'),
+                    verbose=True
+                )
+            except Exception as sync_err:
+                logger.warning(f"Không thể tự động đồng bộ DB từ Host lúc khởi động: {sync_err}")
 
     print("\n" + "=" * 60)
     print("  🏫 Trung tâm Anh ngữ Vicare - Hệ Thống Quản Lý Trung Tâm")
