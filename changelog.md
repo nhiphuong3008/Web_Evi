@@ -1,5 +1,14 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.0.3] - 2026-08-20
+### 🎙️ Cập Nhật Đồng Bộ Điểm Speaking & Triệt Tiêu Cache Trình Duyệt Host
+- **Đồng Bộ Dữ Liệu & Báo Cáo Điểm Thi Speaking (`routes/api.py`, `database/evi_center.db`)**:
+  - Đảm bảo hiển thị cột điểm Nói (Speaking) cho toàn bộ các lớp Sun & Galax và dữ liệu fallback từ bảng `unit_grades`.
+  - Cập nhật và đồng bộ file CSDL `database/evi_center.db` lên GitHub Repository.
+- **Triệt Tiêu Cache Trình Duyệt Trên Toàn Bộ Script Frontend (`static/index.html`)**:
+  - Gắn tham số phiên bản `?v=5.0.3` vào 100% các file JS trong `static/index.html` (`api.js`, `auth.js`, `dashboard.js`, `search.js`, `students.js`, `renewals.js`, `interactions.js`, `users.js`, `cm_portal.js`, `schedule.js`, `audit_logs.js`, `app.js`).
+  - Đảm bảo khi User truy cập từ máy chủ PythonAnywhere luôn nạp mã JS mới nhất mà không bị kẹt cache cũ.
+
 ## [v5.0.0] - 2026-08-19
 ### 🚀 Triển Khai Production Cloud 24/7 (PythonAnywhere) & Phân Tách Môi Trường Local
 - **Phân Tách Môi Trường Thực Thi & Đóng Toàn Bộ Tunnel Public Local**:
