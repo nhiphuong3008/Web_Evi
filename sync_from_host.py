@@ -6,6 +6,11 @@ Chạy: python sync_from_host.py
 import os
 import sys
 
+# Fix Windows console encoding
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 # Đảm bảo import được module trong project
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

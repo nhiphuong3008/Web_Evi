@@ -5,6 +5,12 @@ Cho phép tự động cập nhật dữ liệu mới nhất mỗi khi khởi đ
 
 import os
 import sys
+
+# Fix Windows console encoding
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 import gzip
 import shutil
 import sqlite3
