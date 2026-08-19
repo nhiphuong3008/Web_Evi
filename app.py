@@ -41,6 +41,21 @@ def create_app():
     CORS(app)
 
     # =========================================================
+    # Tự động đồng bộ CSDL từ Cloud Host khi khởi động Local Debug
+    # =========================================================
+    if getattr(config, 'AUTO_SYNC_DB_ON_STARTUP', False) and getattr(config, 'DEBUG', False):
+        if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+            try:
+                from services.sync_host_db import sync_db_from_host
+                sync_db_from_host(
+                    host_url=getattr(config, 'PRODUCTION_HOST_URL', 'https://vicarecrm.pythonanywhere.com'),
+                    secret_token=getattr(config, 'SYNC_SECRET_TOKEN', 'evi_secure_sync_token_2026_x9k2'),
+                    verbose=True
+                )
+            except Exception as sync_err:
+                logger.warning(f"Không thể tự động đồng bộ DB từ Host lúc khởi động: {sync_err}")
+
+    # =========================================================
     # Khởi tạo CSDL SQLite & Background Sync Scheduler
     # =========================================================
     from database.db_manager import init_db

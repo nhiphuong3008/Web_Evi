@@ -2257,5 +2257,62 @@ def update_staff_name_route():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@api_bp.route('/admin/sync-db-snapshot', methods=['GET'])
+def get_db_snapshot_route():
+    """
+    API bảo mật cung cấp bản snapshot CSDL SQLite nén gzip cho máy Local đồng bộ.
+    Yêu cầu Secret Token.
+    """
+    try:
+        from flask import current_app, send_file, Response
+        import gzip
+        import io
+
+        token = request.headers.get('X-Sync-Token') or request.args.get('token')
+        expected_token = current_app.config.get('SYNC_SECRET_TOKEN', 'evi_secure_sync_token_2026_x9k2')
+
+        if not token or token != expected_token:
+            logger.warning(f"Unauthorized DB snapshot download attempt from IP: {request.remote_addr}")
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+        db_path = os.path.join(current_app.root_path, 'database', 'evi_center.db')
+        if not os.path.exists(db_path):
+            return jsonify({'success': False, 'error': 'Database file not found'}), 404
+
+        use_gzip = request.args.get('gzip', '1') == '1'
+
+        if use_gzip:
+            # Nén gzip dữ liệu CSDL để tải siêu nhanh (từ ~90MB còn ~15MB)
+            def generate_compressed():
+                buf = io.BytesIO()
+                with open(db_path, 'rb') as f_in:
+                    with gzip.GzipFile(fileobj=buf, mode='wb', compresslevel=6) as gz:
+                        while True:
+                            chunk = f_in.read(131072)
+                            if not chunk:
+                                break
+                            gz.write(chunk)
+                buf.seek(0)
+                yield buf.read()
+
+            return Response(
+                generate_compressed(),
+                mimetype='application/gzip',
+                headers={'Content-Disposition': 'attachment; filename=evi_center.db.gz'}
+            )
+        else:
+            return send_file(
+                db_path,
+                mimetype='application/octet-stream',
+                as_attachment=True,
+                download_name='evi_center.db'
+            )
+
+    except Exception as e:
+        logger.error(f"Error serving DB snapshot: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
 
 

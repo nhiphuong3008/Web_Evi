@@ -40,6 +40,11 @@ class Config:
     FLASK_PORT = int(os.getenv('FLASK_PORT', 5000))
     FLASK_DEBUG = os.getenv('FLASK_DEBUG', '1') == '1'
 
+    # Database Auto-Sync (Cloud Production Host ➔ Local Debug)
+    SYNC_SECRET_TOKEN = os.getenv('SYNC_SECRET_TOKEN', 'evi_secure_sync_token_2026_x9k2')
+    PRODUCTION_HOST_URL = os.getenv('PRODUCTION_HOST_URL', 'https://vicarecrm.pythonanywhere.com')
+    AUTO_SYNC_DB_ON_STARTUP = os.getenv('AUTO_SYNC_DB_ON_STARTUP', '1') == '1'
+
 
 class DevelopmentConfig(Config):
     """Development configuration."""

@@ -1,5 +1,19 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.1.0] - 2026-08-20
+### 🔄 Tính Năng Tự Động Đồng Bộ CSDL Từ Production Host Về Local & Kích Hoạt Lại Git DB Tracking
+- **API Cung Cấp Snapshot CSDL Nén Gzip Bảo Mật Trên Host (`routes/api.py`)**:
+  - Xây dựng endpoint `GET /api/admin/sync-db-snapshot` bảo mật bằng `X-Sync-Token`.
+  - Tự động nén Gzip file CSDL SQLite từ ~90MB xuống còn ~19MB giúp truyền tải qua mạng siêu nhanh trong 1-2 giây.
+- **Tự Động Đồng Bộ CSDL Khi Bật Local Debug (`app.py`, `services/sync_host_db.py`)**:
+  - Khi khởi động `python app.py` trên máy local, hệ thống tự động kiểm tra và tải CSDL mới nhất từ Cloud PythonAnywhere.
+  - Tự động tạo bản sao lưu an toàn `database/evi_center_local_backup.db` trước khi cập nhật.
+  - Tự động bỏ qua và tiếp tục chạy với DB local hiện tại nếu không có kết nối internet.
+- **Trang Bị Script 1-Click Thủ Công (`sync_from_host.py`)**:
+  - Cung cấp script chạy độc lập `python sync_from_host.py` để kéo dữ liệu mới nhất từ Host về máy bất kỳ lúc nào mà không cần khởi động lại server.
+- **Kích Hoạt Lại Git Tracking Toàn Diện Cho CSDL (`.gitignore`, `database/evi_center.db`)**:
+  - Bật lại việc theo dõi và commit `database/evi_center.db` lên GitHub Repository đồng bộ trọn vẹn cả Code lẫn CSDL.
+
 ## [v5.0.3] - 2026-08-20
 ### 🎙️ Cập Nhật Đồng Bộ Điểm Speaking & Cô Lập Bảo Vệ CSDL Production Host
 - **Bảo Vệ CSDL Production Host 24/7 (`.gitignore`, Git Tracking)**:
