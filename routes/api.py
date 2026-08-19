@@ -1539,7 +1539,14 @@ def get_student_unit_test_pdf(student_code):
         corr_spk = float(request.args.get('corr_spk', 0))
         comment = request.args.get('comment', '')
 
-
+        # Determine dynamic banner title based on class prefix
+        cls_prefix = class_name.strip().upper()
+        if cls_prefix.startswith('GALAX'):
+            unit_title_banner = 'GALAX UNIT TEST'
+        elif cls_prefix.startswith('MOON'):
+            unit_title_banner = 'MOON UNIT TEST'
+        else:
+            unit_title_banner = 'SUN UNIT TEST'
 
         is_sun_or_galax = cls_prefix.startswith('SUN') or cls_prefix.startswith('GALAX')
 
