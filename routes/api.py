@@ -1532,14 +1532,43 @@ def get_student_unit_test_pdf(student_code):
 
         tot_lis = float(request.args.get('tot_lis', 0))
         tot_rw = float(request.args.get('tot_rw', 0))
+        tot_spk = float(request.args.get('tot_spk', 0))
+
         corr_lis = float(request.args.get('corr_lis', 0))
         corr_rw = float(request.args.get('corr_rw', 0))
+        corr_spk = float(request.args.get('corr_spk', 0))
         comment = request.args.get('comment', '')
 
+        # Fallback to StudentGrade DB table if query parameters are missing/zero
+        if tot_lis == 0 and tot_rw == 0 and tot_spk == 0:
+            try:
+                from database.models import StudentGrade
+                from database.db_manager import db_manager
+                with db_manager.session_scope() as session:
+                    g_rec = session.query(StudentGrade).filter(
+                        StudentGrade.student_code == student_code,
+                        StudentGrade.test_name.ilike(f"%{test_name.strip()}%")
+                    ).first()
+                    if g_rec:
+                        tot_lis = g_rec.listening_max or 25
+                        tot_rw = g_rec.reading_writing_max or 35
+                        tot_spk = g_rec.speaking_max or 10
+                        corr_lis = g_rec.listening if g_rec.listening is not None else 0
+                        corr_rw = g_rec.reading_writing if g_rec.reading_writing is not None else 0
+                        corr_spk = g_rec.speaking if g_rec.speaking is not None else 0
+            except Exception as ex:
+                logger.error(f"Error fetching grade from DB for test report pdf: {ex}")
+
+        # Check if speaking score exists
+        has_speaking = (tot_spk > 0 or corr_spk > 0)
+
         # Calculate scores & overall
-        tot_all = tot_lis + tot_rw
-        corr_all = corr_lis + corr_rw
+        tot_all = tot_lis + tot_rw + (tot_spk if has_speaking else 0)
+        corr_all = corr_lis + corr_rw + (corr_spk if has_speaking else 0)
         p10 = round((corr_all / tot_all * 10), 1) if tot_all > 0 else 0.0
+
+        def _fmt(val):
+            return int(val) if float(val).is_integer() else val
 
         # Determine dynamic banner title based on class prefix
         cls_prefix = class_name.strip().upper()
@@ -1728,25 +1757,46 @@ def get_student_unit_test_pdf(student_code):
 
         <!-- Result Section -->
         <div class="section-header">RESULT:</div>
+        {f"""
         <table class="grid-table">
             <tr>
-                <th>Listening</th>
-                <th>Reading & Writing</th>
+                <th style="width: 33.3%;">Listening</th>
+                <th style="width: 33.3%;">Reading & Writing</th>
+                <th style="width: 33.3%;">Speaking</th>
             </tr>
             <tr>
-                <td>
-                    - {test_name}: <strong>{int(corr_lis)} / {int(tot_lis)}</strong> câu đúng
+                <td style="width: 33.3%;">
+                    - {test_name}: <strong>{_fmt(corr_lis)} / {_fmt(tot_lis)}</strong> câu đúng
                 </td>
-                <td>
-                    - {test_name}: <strong>{int(corr_rw)} / {int(tot_rw)}</strong> câu đúng
+                <td style="width: 33.3%;">
+                    - {test_name}: <strong>{_fmt(corr_rw)} / {_fmt(tot_rw)}</strong> câu đúng
+                </td>
+                <td style="width: 33.3%;">
+                    - {test_name}: <strong>{_fmt(corr_spk)} / {_fmt(tot_spk)}</strong> điểm
                 </td>
             </tr>
         </table>
+        """ if has_speaking else f"""
+        <table class="grid-table">
+            <tr>
+                <th style="width: 50%;">Listening</th>
+                <th style="width: 50%;">Reading & Writing</th>
+            </tr>
+            <tr>
+                <td style="width: 50%;">
+                    - {test_name}: <strong>{_fmt(corr_lis)} / {_fmt(tot_lis)}</strong> câu đúng
+                </td>
+                <td style="width: 50%;">
+                    - {test_name}: <strong>{_fmt(corr_rw)} / {_fmt(tot_rw)}</strong> câu đúng
+                </td>
+            </tr>
+        </table>
+        """}
 
         <!-- Overall Score Section -->
         <div class="section-header">OVERALL SCORE:</div>
         <div class="score-box">
-            TỔNG ĐIỂM BÀI TEST: <strong>{int(corr_all)} / {int(tot_all)}</strong> câu đúng &nbsp;|&nbsp; 🎯 THANG ĐIỂM 10: <strong style="color: #c00000; font-size: 22px;">{p10} / 10 điểm</strong>
+            TỔNG ĐIỂM BÀI TEST: <strong>{_fmt(corr_all)} / {_fmt(tot_all)}</strong> câu/điểm &nbsp;|&nbsp; 🎯 THANG ĐIỂM 10: <strong style="color: #c00000; font-size: 22px;">{p10} / 10 điểm</strong>
         </div>
 
         <!-- Comments Section -->

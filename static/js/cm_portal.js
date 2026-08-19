@@ -1787,11 +1787,13 @@ const CMPortalModule = {
         
         const totLis = parseFloat(document.getElementById('tot_lis_q')?.value || 0);
         const totRw = parseFloat(document.getElementById('tot_rw_q')?.value || 0);
+        const totSpk = parseFloat(document.getElementById('tot_spk_q')?.value || 0);
         const corrLis = parseFloat(document.getElementById(`lis_q_${studentId}`)?.value || 0);
         const corrRw = parseFloat(document.getElementById(`rw_q_${studentId}`)?.value || 0);
+        const corrSpk = parseFloat(document.getElementById(`spk_q_${studentId}`)?.value || 0);
         const comment = document.getElementById(`cmt_${studentId}`)?.value || '';
 
-        const url = `/api/students/${studentCode}/test-report-pdf?test_name=${encodeURIComponent(testName)}&class_name=${encodeURIComponent(className)}&exam_date=${encodeURIComponent(examDate)}&tot_lis=${totLis}&tot_rw=${totRw}&corr_lis=${corrLis}&corr_rw=${corrRw}&comment=${encodeURIComponent(comment)}`;
+        const url = `/api/students/${studentCode}/test-report-pdf?test_name=${encodeURIComponent(testName)}&class_name=${encodeURIComponent(className)}&exam_date=${encodeURIComponent(examDate)}&tot_lis=${totLis}&tot_rw=${totRw}&tot_spk=${totSpk}&corr_lis=${corrLis}&corr_rw=${corrRw}&corr_spk=${corrSpk}&comment=${encodeURIComponent(comment)}`;
         window.open(url, '_blank');
     },
 
