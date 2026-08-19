@@ -22,6 +22,11 @@ token.json
 .DS_Store
 Thumbs.db
 
+# Database
+*.db
+database/*.db
+database/evi_center.db
+
 # Logs & Temp
 *.log
 .system_generated/
