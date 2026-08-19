@@ -280,6 +280,7 @@ const ScheduleModule = {
 
         if (!modal || !modalBody) return;
 
+        modal.style.display = 'flex';
         modalTitle.innerHTML = `📋 POP-UP THEO DÕI NỘI DUNG BÀI HỌC VÀ NHẬT KÝ LỚP`;
         modalBody.innerHTML = `<div class="loading-spinner"></div>`;
         modal.classList.add('active');

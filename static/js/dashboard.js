@@ -419,7 +419,10 @@ const Dashboard = {
             `;
         }
 
-        backdrop.classList.add('active');
+        if (backdrop) {
+            backdrop.style.display = 'flex';
+            backdrop.classList.add('active');
+        }
     },
 
     modalStack: [],
@@ -464,14 +467,20 @@ const Dashboard = {
                         }
                     }
                 }
-                if (backdrop) backdrop.classList.add('active');
+                if (backdrop) {
+                    backdrop.style.display = 'flex';
+                    backdrop.classList.add('active');
+                }
                 return;
             }
         }
 
         // If stack is empty, reset stack and hide backdrop
         this.modalStack = [];
-        if (backdrop) backdrop.classList.remove('active');
+        if (backdrop) {
+            backdrop.style.display = '';
+            backdrop.classList.remove('active');
+        }
     },
 
     /**
@@ -1751,22 +1760,6 @@ const Dashboard = {
             }
         } catch (e) {
             if (typeof App !== 'undefined' && App.showToast) App.showToast(`Lỗi kết nối: ${e.message}`, 'error');
-        }
-    },
-
-    openModal() {
-        const backdrop = document.getElementById('modal-backdrop');
-        if (backdrop) {
-            backdrop.style.display = 'flex';
-            backdrop.classList.add('active');
-        }
-    },
-
-    closeModal() {
-        const backdrop = document.getElementById('modal-backdrop');
-        if (backdrop) {
-            backdrop.style.display = 'none';
-            backdrop.classList.remove('active');
         }
     },
 

@@ -1,5 +1,14 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.1.1] - 2026-08-20
+### 🐛 Sửa Lỗi Nút Lesson Không Mở Được Nhiều Lần & Khắc Phục Triệt Để Quản Lý Pop-up
+- **Sửa Lỗi Pop-up Bị Khóa Sau Khi Đóng (`static/js/schedule.js`, `static/js/dashboard.js`)**:
+  - Khắc phục lỗi xung đột inline style `display: none` ngăn cản mở lại pop-up Bài học (Lesson).
+  - Tự động thiết lập `display: flex` kèm lớp CSS `.active` đồng bộ trong `ScheduleModule.openLessonLogModal` và `Dashboard.openKPIDetail`.
+  - Loại bỏ các hàm đóng/mở pop-up trùng lặp trong `dashboard.js`, tối ưu ngăn xếp `modalStack` cho phép mở liên tục các bài học khác nhau không giới hạn số lần mà không cần tải lại trang (F5).
+- **Cập Nhật Cache Buster Phiên Bản v5.1.1 (`static/index.html`)**:
+  - Gắn `?v=5.1.1` vào toàn bộ script frontend để trình duyệt lập tức nhận bản vá.
+
 ## [v5.1.0] - 2026-08-20
 ### 🔄 Tính Năng Tự Động Đồng Bộ CSDL Từ Production Host Về Local & Kích Hoạt Lại Git DB Tracking
 - **API Cung Cấp Snapshot CSDL Nén Gzip Bảo Mật Trên Host (`routes/api.py`)**:
