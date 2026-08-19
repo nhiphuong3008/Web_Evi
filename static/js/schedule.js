@@ -323,6 +323,7 @@ const ScheduleModule = {
                 targetReason = 'Bài học mới nhất';
             }
 
+            this.currentTargetIndex = targetIndex;
             const targetLesson = lessons[targetIndex];
 
             let rowsHtml = lessons.map((l, index) => {
@@ -334,7 +335,7 @@ const ScheduleModule = {
                 const isTarget = (index === targetIndex);
 
                 return `
-                    <tr id="${isTarget ? 'target-scroll-row' : ''}" style="${isTarget ? 'background: rgba(255, 126, 95, 0.15); font-weight: 700; border: 2px solid #ff7e5f;' : ''}">
+                    <tr id="lesson-row-${index}" data-target-scroll="${isTarget ? 'true' : ''}" style="${isTarget ? 'background: rgba(255, 126, 95, 0.15); font-weight: 700; border: 2px solid #ff7e5f;' : ''}">
                         <td style="text-align: center; font-weight: 800; font-size: 13px; vertical-align: top; padding-top: 10px;">
                             ${l.status_code === 'completed' ? '🟢 ' : (l.status_code === 'today' ? '👉 ' : '⚪ ')}${l.buoi}
                             ${isTarget ? `<br><small style="color: #ff7e5f; font-size: 10px; font-weight: 800;">📍(${targetReason})</small>` : ''}
@@ -373,6 +374,9 @@ const ScheduleModule = {
                                 <button class="btn btn-sm" onclick="ScheduleModule.toggleLessonDelay('${AuthModule.escapeHtml(class_name)}', ${l.buoi});" style="padding: 3px 8px; font-size: 11px; background: ${l.is_delayed ? '#ffe4e6' : '#fef3c7'}; color: ${l.is_delayed ? '#be123c' : '#b45309'}; border: 1px solid ${l.is_delayed ? '#f43f5e' : '#f59e0b'}; border-radius: 6px; font-weight: 700;" title="${l.is_delayed ? 'Hủy lùi lịch cho buổi này' : 'Bấm lùi ngày học của buổi này sang buổi kế tiếp nếu bị nghỉ học/hủy buổi'}">
                                     ${l.is_delayed ? '↩️ Hủy Lùi' : '⏩ Lùi Lịch'}
                                 </button>
+                                <button class="btn btn-sm" onclick="ScheduleModule.jumpToLesson(${index}, ${l.buoi});" style="padding: 3px 8px; font-size: 11px; background: #e0e7ff; color: #4338ca; border: 1px solid #a5b4fc; border-radius: 6px; font-weight: 700;" title="Nhảy tiêu điểm tới bài học này">
+                                    ⏩ Nhảy Bài
+                                </button>
                             </div>
                         </td>
                         <td style="font-size: 12px; color: #334155; vertical-align: top; padding-top: 10px; font-weight: 600;">${l.homework_note}</td>
@@ -407,9 +411,11 @@ const ScheduleModule = {
 
                     <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                         <span>📝 CHI TIẾT NỘI DUNG BÀI HỌC (SYLLABUS)</span>
-                        <span style="background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; box-shadow: 0 2px 6px rgba(255, 126, 95, 0.2);">
-                            📍 Tự động định vị: Buổi ${targetLesson ? targetLesson.buoi : ''} (${targetReason})
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span id="target-location-badge" style="background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; box-shadow: 0 2px 6px rgba(255, 126, 95, 0.2);">
+                                📌 Tự động định vị: Buổi ${targetLesson ? targetLesson.buoi : ''} (${targetReason})
+                            </span>
+                        </div>
                     </h4>
 
                     <div id="lesson-log-scroll-wrapper" class="data-table-wrapper" style="max-height: 460px; overflow-y: auto; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px;">
@@ -432,7 +438,7 @@ const ScheduleModule = {
             `;
 
             setTimeout(() => {
-                const targetRow = document.getElementById('target-scroll-row');
+                const targetRow = document.querySelector('[data-target-scroll="true"]');
                 if (targetRow) {
                     targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
@@ -455,6 +461,7 @@ const ScheduleModule = {
         });
         return cleanLines.join('');
     },
+
 
     exportReportCardPDF() {
         const cardEl = document.getElementById('report-card-canvas');
@@ -1018,7 +1025,7 @@ const ScheduleModule = {
         }
     },
 
-    async cancelHolidayShift(holidayId, title) {
+            async cancelHolidayShift(holidayId, title) {
         if (!confirm(`Bạn có chắc chắn muốn HỦY đợt nghỉ "${title}" (#${holidayId})?\nHệ thống sẽ khôi phục lại hạn học (Expiry Date) ban đầu của tất cả học sinh bị ảnh hưởng!`)) {
             return;
         }
@@ -1042,6 +1049,51 @@ const ScheduleModule = {
         } catch (e) {
             alert('Lỗi kết nối server: ' + e.message);
         }
+    },
+
+    /**
+     * Nhảy tiêu điểm tới bài học được chọn
+     */
+    jumpToLesson(index, buoiNum) {
+        if (!this.currentLessonsList || index < 0 || index >= this.currentLessonsList.length) return;
+
+        this.currentTargetIndex = index;
+        const targetLesson = this.currentLessonsList[index];
+        const buoi = buoiNum || (targetLesson ? targetLesson.buoi : index + 1);
+
+        // Update target badge header
+        const badge = document.getElementById('target-location-badge');
+        if (badge) {
+            badge.innerHTML = `📍 Đã định vị: Buổi ${buoi} (Người dùng chọn thủ công)`;
+            badge.style.background = '#e0e7ff';
+            badge.style.color = '#3730a3';
+            badge.style.borderColor = '#818cf8';
+        }
+
+        // Update row styling
+        this.currentLessonsList.forEach((_, idx) => {
+            const row = document.getElementById(`lesson-row-${idx}`);
+            if (row) {
+                if (idx === index) {
+                    row.style.background = 'rgba(255, 126, 95, 0.15)';
+                    row.style.fontWeight = '700';
+                    row.style.border = '2px solid #ff7e5f';
+                } else {
+                    row.style.background = '';
+                    row.style.fontWeight = '';
+                    row.style.border = '';
+                }
+            }
+        });
+
+        // Scroll into view smoothly
+        const targetRow = document.getElementById(`lesson-row-${index}`);
+        if (targetRow) {
+            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        if (typeof App !== 'undefined' && App.showToast) {
+            App.showToast(`📌 Đã nhảy tới Buổi ${buoi} (${targetLesson ? (targetLesson.lesson_title || 'Lesson ' + buoi) : ''})`, 'info');
+        }
     }
 };
-
