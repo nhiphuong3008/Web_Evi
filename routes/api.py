@@ -1591,6 +1591,43 @@ def get_student_unit_test_pdf(student_code):
 
         comment_section_html = _format_comment_html(comment)
 
+        if has_speaking:
+            result_table_html = f"""
+        <table class="grid-table">
+            <tr>
+                <th style="width: 33.3%;">Listening</th>
+                <th style="width: 33.3%;">Reading & Writing</th>
+                <th style="width: 33.3%;">Speaking</th>
+            </tr>
+            <tr>
+                <td style="width: 33.3%;">
+                    - {test_name}: <strong>{_fmt(corr_lis)} / {_fmt(tot_lis)}</strong> câu đúng
+                </td>
+                <td style="width: 33.3%;">
+                    - {test_name}: <strong>{_fmt(corr_rw)} / {_fmt(tot_rw)}</strong> câu đúng
+                </td>
+                <td style="width: 33.3%;">
+                    - {test_name}: <strong>{_fmt(corr_spk)} / {_fmt(tot_spk)}</strong> điểm
+                </td>
+            </tr>
+        </table>"""
+        else:
+            result_table_html = f"""
+        <table class="grid-table">
+            <tr>
+                <th style="width: 50%;">Listening</th>
+                <th style="width: 50%;">Reading & Writing</th>
+            </tr>
+            <tr>
+                <td style="width: 50%;">
+                    - {test_name}: <strong>{_fmt(corr_lis)} / {_fmt(tot_lis)}</strong> câu đúng
+                </td>
+                <td style="width: 50%;">
+                    - {test_name}: <strong>{_fmt(corr_rw)} / {_fmt(tot_rw)}</strong> câu đúng
+                </td>
+            </tr>
+        </table>"""
+
         # Build Printable HTML matching the image template exactly
         html_content = f"""<!DOCTYPE html>
 <html lang="vi">
@@ -1767,41 +1804,7 @@ def get_student_unit_test_pdf(student_code):
 
         <!-- Result Section -->
         <div class="section-header">RESULT:</div>
-        {f"""
-        <table class="grid-table">
-            <tr>
-                <th style="width: 33.3%;">Listening</th>
-                <th style="width: 33.3%;">Reading & Writing</th>
-                <th style="width: 33.3%;">Speaking</th>
-            </tr>
-            <tr>
-                <td style="width: 33.3%;">
-                    - {test_name}: <strong>{_fmt(corr_lis)} / {_fmt(tot_lis)}</strong> câu đúng
-                </td>
-                <td style="width: 33.3%;">
-                    - {test_name}: <strong>{_fmt(corr_rw)} / {_fmt(tot_rw)}</strong> câu đúng
-                </td>
-                <td style="width: 33.3%;">
-                    - {test_name}: <strong>{_fmt(corr_spk)} / {_fmt(tot_spk)}</strong> điểm
-                </td>
-            </tr>
-        </table>
-        """ if has_speaking else f"""
-        <table class="grid-table">
-            <tr>
-                <th style="width: 50%;">Listening</th>
-                <th style="width: 50%;">Reading & Writing</th>
-            </tr>
-            <tr>
-                <td style="width: 50%;">
-                    - {test_name}: <strong>{_fmt(corr_lis)} / {_fmt(tot_lis)}</strong> câu đúng
-                </td>
-                <td style="width: 50%;">
-                    - {test_name}: <strong>{_fmt(corr_rw)} / {_fmt(tot_rw)}</strong> câu đúng
-                </td>
-            </tr>
-        </table>
-        """}
+        {result_table_html}
 
         <!-- Overall Score Section -->
         <div class="section-header">OVERALL SCORE:</div>
