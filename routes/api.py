@@ -1539,45 +1539,48 @@ def get_student_unit_test_pdf(student_code):
         corr_spk = float(request.args.get('corr_spk', 0))
         comment = request.args.get('comment', '')
 
-        # Fallback to StudentGrade DB table if query parameters are missing/zero
-        if tot_lis == 0 and tot_rw == 0 and tot_spk == 0:
+
+
+        is_sun_or_galax = cls_prefix.startswith('SUN') or cls_prefix.startswith('GALAX')
+
+        # Fallback to UnitGrade DB table if query parameters are zero or incomplete
+        if (tot_lis == 0 and tot_rw == 0) or corr_spk == 0:
             try:
-                from database.models import StudentGrade
-                from database.db_manager import db_manager
-                with db_manager.session_scope() as session:
-                    g_rec = session.query(StudentGrade).filter(
-                        StudentGrade.student_code == student_code,
-                        StudentGrade.test_name.ilike(f"%{test_name.strip()}%")
-                    ).first()
-                    if g_rec:
-                        tot_lis = g_rec.listening_max or 25
-                        tot_rw = g_rec.reading_writing_max or 35
-                        tot_spk = g_rec.speaking_max or 10
-                        corr_lis = g_rec.listening if g_rec.listening is not None else 0
-                        corr_rw = g_rec.reading_writing if g_rec.reading_writing is not None else 0
-                        corr_spk = g_rec.speaking if g_rec.speaking is not None else 0
+                from database.models import UnitGrade
+                from database.db_manager import db_session
+                session = db_session()
+                g_rec = session.query(UnitGrade).filter(
+                    UnitGrade.student_code == student_code,
+                    UnitGrade.test_name.ilike(f"%{test_name.strip()}%")
+                ).first()
+                if not g_rec:
+                    g_rec = session.query(UnitGrade).filter(UnitGrade.student_code == student_code).order_by(UnitGrade.id.desc()).first()
+                
+                if g_rec:
+                    if tot_lis == 0: tot_lis = g_rec.listening_max or 25
+                    if tot_rw == 0: tot_rw = g_rec.reading_writing_max or 35
+                    if tot_spk == 0: tot_spk = g_rec.speaking_max or 10
+                    if corr_lis == 0 and g_rec.listening is not None: corr_lis = g_rec.listening
+                    if corr_rw == 0 and g_rec.reading_writing is not None: corr_rw = g_rec.reading_writing
+                    if corr_spk == 0 and g_rec.speaking is not None: corr_spk = g_rec.speaking
+                session.close()
             except Exception as ex:
                 logger.error(f"Error fetching grade from DB for test report pdf: {ex}")
 
-        # Check if speaking score exists
-        has_speaking = (tot_spk > 0 or corr_spk > 0)
+        # Always show Speaking column for Sun & Galax tests or if speaking score exists
+        has_speaking = is_sun_or_galax or tot_spk > 0 or corr_spk > 0
+        if has_speaking and tot_spk == 0:
+            tot_spk = 10.0
 
         # Calculate scores & overall
-        tot_all = tot_lis + tot_rw + (tot_spk if has_speaking else 0)
-        corr_all = corr_lis + corr_rw + (corr_spk if has_speaking else 0)
+        tot_all = tot_lis + tot_rw + (tot_spk if (has_speaking and corr_spk > 0) else 0)
+        corr_all = corr_lis + corr_rw + (corr_spk if (has_speaking and corr_spk > 0) else 0)
         p10 = round((corr_all / tot_all * 10), 1) if tot_all > 0 else 0.0
 
         def _fmt(val):
             return int(val) if float(val).is_integer() else val
 
-        # Determine dynamic banner title based on class prefix
-        cls_prefix = class_name.strip().upper()
-        if cls_prefix.startswith('GALAX'):
-            unit_title_banner = 'GALAX UNIT TEST'
-        elif cls_prefix.startswith('MOON'):
-            unit_title_banner = 'MOON UNIT TEST'
-        else:
-            unit_title_banner = 'SUN UNIT TEST'
+
 
         comment_section_html = _format_comment_html(comment)
 
