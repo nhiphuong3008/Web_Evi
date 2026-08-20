@@ -31,13 +31,6 @@ const Dashboard = {
 
         // Build HTML
         container.innerHTML = `
-            ${!App.isConnected ? `
-                <div class="demo-banner">
-                    <span class="demo-banner-icon">⚠️</span>
-                    <span>Đang chạy ở <strong>chế độ Demo</strong> với dữ liệu mẫu. Cấu hình Google Sheets credentials để kết nối dữ liệu thực.</span>
-                </div>
-            ` : ''}
-
             <!-- CM Schedule Timetable Widget (Đưa lên đầu cho CM kiểm tra) -->
             <div id="cm-dashboard-schedule-container"></div>
 

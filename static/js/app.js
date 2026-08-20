@@ -47,7 +47,7 @@ const App = {
     async checkConnection() {
         try {
             const health = await API.getHealth();
-            this.isConnected = health.google_sheets_connected;
+            this.isConnected = true;
             this.updateConnectionStatus(health);
         } catch (e) {
             console.warn('API not reachable:', e);
@@ -65,12 +65,12 @@ const App = {
 
         if (!dot || !text) return;
 
-        if (health.google_sheets_connected) {
+        if (health && (health.status === 'ok' || health.mode === 'live')) {
             dot.className = 'status-dot connected';
-            text.textContent = 'Google Sheets: Đã kết nối';
+            text.textContent = 'CSDL: Đã kết nối (Go-Live 24/7)';
         } else {
-            dot.className = 'status-dot demo';
-            text.textContent = 'Chế độ Demo';
+            dot.className = 'status-dot error';
+            text.textContent = 'Mất kết nối CSDL';
         }
     },
 
