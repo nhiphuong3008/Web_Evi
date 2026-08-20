@@ -480,6 +480,12 @@ const Dashboard = {
         if (backdrop) {
             backdrop.style.display = '';
             backdrop.classList.remove('active');
+            const container = backdrop.querySelector('.modal-container');
+            if (container) {
+                container.classList.remove('modal-xl');
+                container.style.maxWidth = '';
+                container.style.width = '';
+            }
         }
     },
 
@@ -489,7 +495,15 @@ const Dashboard = {
     closeAllModals() {
         this.modalStack = [];
         const backdrop = document.getElementById('modal-backdrop');
-        if (backdrop) backdrop.classList.remove('active');
+        if (backdrop) {
+            backdrop.classList.remove('active');
+            const container = backdrop.querySelector('.modal-container');
+            if (container) {
+                container.classList.remove('modal-xl');
+                container.style.maxWidth = '';
+                container.style.width = '';
+            }
+        }
         const studentModal = document.getElementById('student-modal');
         if (studentModal) studentModal.classList.remove('active');
     },

@@ -1728,40 +1728,86 @@ def calculate_real_class_lesson_dates(schedules, class_name, matched_syllabuses,
 def toggle_delay_class_lesson_db(class_name, lesson_num):
     """
     Toggle (Bật/Tắt) lùi lịch cho 1 buổi học cụ thể của lớp học.
-    Khi lùi lịch buổi X: Buổi X và toàn bộ lịch phía sau sẽ tự động dời sang buổi tiếp theo!
+    Khi lùi lịch buổi X: Buổi X và toàn bộ lịch phía sau sẽ tự động dời sang buổi tiếp theo trong lịch học thực tế!
     """
     import json
-    from database.models import ClassScheduleAdjustment
+    from database.models import ClassScheduleAdjustment, ClassSchedule, LessonSyllabus
     session = db_session()
     try:
         clean_cname = class_name.strip()
+        schedules = session.query(ClassSchedule).filter(ClassSchedule.class_name.ilike(f"%{clean_cname}%")).all()
+        matched_syllabuses = session.query(LessonSyllabus).filter(
+            LessonSyllabus.class_name.ilike(f"%{clean_cname}%")
+        ).order_by(LessonSyllabus.lesson_num.asc()).all()
+
         adj = session.query(ClassScheduleAdjustment).filter(
             ClassScheduleAdjustment.class_name.ilike(f"%{clean_cname}%")
         ).first()
 
+        l_num_int = int(lesson_num)
+        is_delayed_now = True
+
         if not adj:
             adj = ClassScheduleAdjustment(
                 class_name=clean_cname,
-                delayed_lessons=json.dumps([lesson_num]),
-                note=f"Tự động tạo khi lùi lịch buổi {lesson_num}"
+                delayed_lessons=json.dumps([l_num_int]),
+                note=f"Tự động tạo khi lùi lịch buổi {l_num_int}"
             )
             session.add(adj)
+            is_delayed_now = True
         else:
             try:
                 d_list = json.loads(adj.delayed_lessons or '[]')
             except:
                 d_list = []
             
-            if lesson_num in d_list:
-                d_list.remove(lesson_num)
+            if l_num_int in d_list:
+                d_list.remove(l_num_int)
+                is_delayed_now = False
             else:
-                d_list.append(lesson_num)
+                d_list.append(l_num_int)
+                is_delayed_now = True
                 
             adj.delayed_lessons = json.dumps(sorted(list(set(d_list))))
 
+        # If we have syllabuses in DB, shift the actual official_dates
+        if matched_syllabuses:
+            target_idx = -1
+            for idx, s in enumerate(matched_syllabuses):
+                if (s.lesson_num or idx + 1) == l_num_int:
+                    target_idx = idx
+                    break
+
+            if target_idx >= 0:
+                study_weekdays = set()
+                for s in schedules:
+                    if s.day:
+                        day_str = s.day.lower()
+                        for k, v in [('mon', 0), ('tue', 1), ('wed', 2), ('thu', 3), ('fri', 4), ('sat', 5), ('sun', 6)]:
+                            if k in day_str:
+                                study_weekdays.add(v)
+                if not study_weekdays:
+                    study_weekdays = {0, 3}
+                sorted_weekdays = sorted(list(study_weekdays))
+
+                lesson_dates, _ = calculate_real_class_lesson_dates(schedules, clean_cname, matched_syllabuses, session)
+                current_target_d = lesson_dates[target_idx]
+
+                if is_delayed_now:
+                    # Shift forward +1 study date from target_idx onwards
+                    anchor_d = get_next_study_date(current_target_d, sorted_weekdays)
+                else:
+                    # Shift backward -1 study date from target_idx onwards
+                    anchor_d = get_prev_study_date(current_target_d, sorted_weekdays)
+
+                curr_d = anchor_d
+                for idx in range(target_idx, len(matched_syllabuses)):
+                    matched_syllabuses[idx].official_date = curr_d.strftime('%Y-%m-%d')
+                    curr_d = get_next_study_date(curr_d, sorted_weekdays)
+
         session.commit()
         session.close()
-        return {'success': True, 'class_name': clean_cname, 'lesson_num': lesson_num}
+        return {'success': True, 'class_name': clean_cname, 'lesson_num': l_num_int, 'is_delayed': is_delayed_now}
     except Exception as e:
         session.rollback()
         session.close()

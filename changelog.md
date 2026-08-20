@@ -1,5 +1,17 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.1.4] - 2026-08-20
+### 🌟 Mở Rộng Toàn Diện Giao Diện Pop-up Giáo Án & Hoàn Thiện Cơ Chế Lùi Lịch Thực Tế
+- **Mở Rộng Giao Diện Pop-up Hiển Thị 100% Tính Năng (`static/css/style.css`, `static/js/schedule.js`, `static/js/dashboard.js`)**:
+  - Bổ sung lớp `.modal-container.modal-xl` với `max-width: 1320px; width: 96vw` giúp pop-up tận dụng tối đa không gian màn hình, không còn bị tràn hay che khuất nút thao tác.
+  - Phân bổ lại chiều rộng các cột: Buổi (55px), Ngày (65px), Chi tiết bài học (min 360px), Trạng thái & Thao tác (225px), Bài tập (220px).
+  - Bọc bảng trong container cuộn 2 chiều (`overflow-x: auto; overflow-y: auto; max-height: 480px`) đảm bảo hiển thị trọn vẹn 100% trên mọi kích thước màn hình laptop.
+- **Hoàn Thiện Tính Năng "⏪ Lùi Lịch" Dời Ngày Học Thực Tế (`services/db_service.py`)**:
+  - Nâng cấp `toggle_delay_class_lesson_db`: Khi bấm **`⏪ Lùi Lịch`** tại Buổi X, hệ thống tự động dời ngày học thực tế của Buổi X và toàn bộ các buổi học phía sau sang buổi tiếp theo (+1 ngày học) trong CSDL SQLite.
+  - Khi bấm **`↩️ Hủy Lùi`**, ngày học được khôi phục về đúng tiến độ gốc (-1 ngày học).
+- **Cập Nhật Cache Buster Phiên Bản v5.1.4 (`static/index.html`)**:
+  - Gắn `?v=5.1.4` vào toàn bộ script frontend.
+
 ## [v5.1.3] - 2026-08-20
 ### 🐛 Sửa Lỗi Hiển Thị Thời Khóa Biểu (Fix defaultDriveUrl ReferenceError)
 - **Sửa Lỗi Khởi Tạo Biến URL Thư Mục Giáo Án (`static/js/schedule.js`)**:

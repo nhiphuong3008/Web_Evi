@@ -987,15 +987,20 @@ body::before {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color-hover);
     border-radius: var(--border-radius-lg);
-    width: 100%;
+    width: 95%;
     max-width: 900px;
-    max-height: 85vh;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(99, 102, 241, 0.2);
     transform: scale(0.95) translateY(10px);
     transition: transform var(--transition-normal);
     overflow: hidden;
+}
+
+.modal-container.modal-xl {
+    max-width: 1320px;
+    width: 96vw;
 }
 
 .modal-backdrop.active .modal-container {

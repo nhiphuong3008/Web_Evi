@@ -285,6 +285,13 @@ const ScheduleModule = {
         modalBody.innerHTML = `<div class="loading-spinner"></div>`;
         modal.classList.add('active');
 
+        const modalContainer = modal.querySelector('.modal-container');
+        if (modalContainer) {
+            modalContainer.classList.add('modal-xl');
+            modalContainer.style.maxWidth = '1320px';
+            modalContainer.style.width = '96vw';
+        }
+
         try {
             const res = await fetch(`/api/schedule/class-detail?class_name=${encodeURIComponent(className)}`);
             const json = await res.json();
@@ -377,21 +384,21 @@ const ScheduleModule = {
                                 ` : ''}
                             </div>
                         </td>
-                        <td style="vertical-align: top; padding-top: 10px;">
+                        <td style="vertical-align: top; padding-top: 10px; width: 225px; min-width: 220px;">
                             <span class="badge ${statusBadge}" style="font-weight: 700;">${l.status_label}</span>
                             <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
-                                <button class="btn btn-sm" onclick="ScheduleModule.showReportCardModal(${index});" style="padding: 3px 8px; font-size: 11px; background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; border-radius: 6px; font-weight: 700;" title="Xem thẻ báo cáo bài học mẫu EVI">
-                                    📄 Thẻ Báo Cáo
+                                <button class="btn btn-sm" onclick="ScheduleModule.showReportCardModal(${index});" style="padding: 4px 8px; font-size: 11px; background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Xem thẻ báo cáo bài học mẫu EVI">
+                                    📄 Báo Cáo
                                 </button>
-                                <button class="btn btn-sm" onclick="ScheduleModule.toggleLessonDelay('${AuthModule.escapeHtml(class_name)}', ${l.buoi});" style="padding: 3px 8px; font-size: 11px; background: ${l.is_delayed ? '#ffe4e6' : '#fef3c7'}; color: ${l.is_delayed ? '#be123c' : '#b45309'}; border: 1px solid ${l.is_delayed ? '#f43f5e' : '#f59e0b'}; border-radius: 6px; font-weight: 700;" title="${l.is_delayed ? 'Hủy lùi lịch cho buổi này' : 'Bấm lùi ngày học của buổi này sang buổi kế tiếp nếu bị nghỉ học/hủy buổi'}">
+                                <button class="btn btn-sm" onclick="ScheduleModule.toggleLessonDelay('${AuthModule.escapeHtml(class_name)}', ${l.buoi});" style="padding: 4px 8px; font-size: 11px; background: ${l.is_delayed ? '#ffe4e6' : '#fef3c7'}; color: ${l.is_delayed ? '#be123c' : '#b45309'}; border: 1px solid ${l.is_delayed ? '#f43f5e' : '#f59e0b'}; border-radius: 6px; font-weight: 700; cursor: pointer;" title="${l.is_delayed ? 'Hủy lùi lịch cho buổi này' : 'Bấm lùi ngày học của buổi này sang buổi kế tiếp nếu bị nghỉ học/hủy buổi'}">
                                     ${l.is_delayed ? '↩️ Hủy Lùi' : '⏪ Lùi Lịch'}
                                 </button>
-                                <button class="btn btn-sm" onclick="ScheduleModule.advanceLessonProgress('${AuthModule.escapeHtml(class_name)}', ${l.buoi});" style="padding: 3px 8px; font-size: 11px; background: #e0e7ff; color: #4338ca; border: 1px solid #a5b4fc; border-radius: 6px; font-weight: 700;" title="Bấm để nhảy bài (đẩy ngày học của bài này và các bài sau lên sớm 1 buổi nếu học nhanh hơn hoặc bỏ qua bài trước)">
+                                <button class="btn btn-sm" onclick="ScheduleModule.advanceLessonProgress('${AuthModule.escapeHtml(class_name)}', ${l.buoi});" style="padding: 4px 8px; font-size: 11px; background: #e0e7ff; color: #4338ca; border: 1px solid #a5b4fc; border-radius: 6px; font-weight: 700; cursor: pointer;" title="Bấm để nhảy bài (đẩy ngày học của bài này và các bài sau lên sớm 1 buổi nếu học nhanh hơn hoặc bỏ qua bài trước)">
                                     ⏩ Nhảy Bài
                                 </button>
                             </div>
                         </td>
-                        <td style="font-size: 12px; color: #334155; vertical-align: top; padding-top: 10px; font-weight: 600;">${l.homework_note}</td>
+                        <td style="font-size: 12px; color: #334155; vertical-align: top; padding-top: 10px; font-weight: 600; width: 220px; min-width: 200px;">${l.homework_note}</td>
                     </tr>
                 `;
             }).join('');
@@ -435,15 +442,15 @@ const ScheduleModule = {
                         </div>
                     </h4>
 
-                    <div id="lesson-log-scroll-wrapper" class="data-table-wrapper" style="max-height: 460px; overflow-y: auto; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px;">
-                        <table class="data-table" style="font-size: 12.5px; width: 100%;">
+                    <div id="lesson-log-scroll-wrapper" class="data-table-wrapper" style="max-height: 480px; overflow-y: auto; overflow-x: auto; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px;">
+                        <table class="data-table" style="font-size: 12.5px; width: 100%; min-width: 980px;">
                             <thead>
                                 <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-                                    <th style="width: 60px; text-align: center;">Buổi</th>
-                                    <th style="width: 75px;">Ngày</th>
-                                    <th>Chi Tiết Bài Học (Unit, Từ vựng, Cấu trúc, Target)</th>
-                                    <th style="width: 130px;">Trạng Thái</th>
-                                    <th style="width: 190px;">Bài Tập (GV & CM)</th>
+                                    <th style="width: 55px; text-align: center; white-space: nowrap;">Buổi</th>
+                                    <th style="width: 65px; white-space: nowrap;">Ngày</th>
+                                    <th style="min-width: 360px;">Chi Tiết Bài Học (Unit, Từ vựng, Cấu trúc, Target)</th>
+                                    <th style="width: 225px; min-width: 220px; white-space: nowrap;">Trạng Thái & Thao Tác</th>
+                                    <th style="width: 220px; min-width: 200px;">Bài Tập (GV & CM)</th>
                                 </tr>
                             </thead>
                             <tbody>
