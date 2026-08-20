@@ -771,7 +771,7 @@ def get_unmatched_audit():
 
 @api_bp.route('/auth/login', methods=['POST'])
 def auth_login():
-    """API Đăng nhập hệ thống."""
+    """API Đăng nhập hệ thống - Tự động ghi nhớ tác vụ đăng nhập."""
     try:
         body = request.get_json() or {}
         username = body.get('username', '')
@@ -780,12 +780,37 @@ def auth_login():
         if not username or not password:
             return jsonify({'success': False, 'error': 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.'}), 400
 
-        from services.db_service import authenticate_user_db
+        from services.db_service import authenticate_user_db, log_activity_db
         res = authenticate_user_db(username, password)
+        if res.get('success'):
+            u_info = res.get('user', {})
+            log_activity_db(
+                username=u_info.get('username', username),
+                user_fullname=u_info.get('full_name', username),
+                user_role=u_info.get('role', 'cm'),
+                action_type='LOGIN',
+                target_module='AUTH',
+                description=f"Đăng nhập thành công vào hệ thống ({u_info.get('role', 'user').upper()})",
+                ip_address=request.remote_addr
+            )
         status_code = 200 if res.get('success') else 401
         return jsonify(res), status_code
     except Exception as e:
         logger.error(f"Error in auth_login: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_bp.route('/user/recent-activities', methods=['GET'])
+def get_user_recent_activities():
+    """API Lấy danh sách tác vụ gần nhất của người dùng hiện tại (hoặc toàn hệ thống)."""
+    try:
+        username = request.args.get('username', '').strip() or None
+        limit = int(request.args.get('limit', 15))
+        from services.db_service import get_activity_logs_db
+        res = get_activity_logs_db(username=username, limit=limit)
+        return jsonify(res)
+    except Exception as e:
+        logger.error(f"Error in get_user_recent_activities: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1131,10 +1156,21 @@ def delay_schedule_lesson():
         if not class_name or not lesson_num:
             return jsonify({'success': False, 'error': 'Vui lòng cung cấp class_name và lesson_num'}), 400
 
-        from services.db_service import toggle_delay_class_lesson_db, get_class_lesson_log_db
+        from services.db_service import toggle_delay_class_lesson_db, get_class_lesson_log_db, log_activity_db
         toggle_res = toggle_delay_class_lesson_db(class_name, int(lesson_num))
         if not toggle_res.get('success'):
             return jsonify(toggle_res), 500
+
+        # Ghi log hoạt động
+        user_name = data.get('username') or 'admin'
+        log_activity_db(
+            username=user_name,
+            action_type='DELAY_LESSON',
+            target_module='SCHEDULE',
+            target_id=class_name,
+            description=f"Thao tác Lùi Lịch buổi {lesson_num} cho lớp {class_name}",
+            ip_address=request.remote_addr
+        )
 
         # Refetch updated class lesson log
         updated_log = get_class_lesson_log_db(class_name)
@@ -1154,10 +1190,21 @@ def jump_schedule_lesson():
         if not class_name:
             return jsonify({'success': False, 'error': 'Vui lòng cung cấp class_name'}), 400
 
-        from services.db_service import set_class_current_lesson_db, get_class_lesson_log_db
+        from services.db_service import set_class_current_lesson_db, get_class_lesson_log_db, log_activity_db
         jump_res = set_class_current_lesson_db(class_name, int(lesson_num) if (lesson_num is not None and str(lesson_num).isdigit()) else None)
         if not jump_res.get('success'):
             return jsonify(jump_res), 500
+
+        # Ghi log hoạt động
+        user_name = data.get('username') or 'admin'
+        log_activity_db(
+            username=user_name,
+            action_type='JUMP_LESSON',
+            target_module='SCHEDULE',
+            target_id=class_name,
+            description=f"Thao tác Nhảy Bài (đặt bài hiện tại) buổi {lesson_num} cho lớp {class_name}",
+            ip_address=request.remote_addr
+        )
 
         # Refetch updated class lesson log
         updated_log = get_class_lesson_log_db(class_name)

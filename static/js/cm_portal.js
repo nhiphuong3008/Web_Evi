@@ -46,9 +46,15 @@ const CMPortalModule = {
 
                 this.classes = rawClasses;
                 if (this.classes.length > 0) {
-                    const exists = this.classes.some(c => c.class_name === this.selectedClassName);
-                    if (!exists) {
-                        this.selectedClassName = this.classes[0].class_name;
+                    const savedClass = localStorage.getItem('evi_last_cm_class');
+                    const savedExists = savedClass && this.classes.some(c => c.class_name === savedClass);
+                    if (savedExists) {
+                        this.selectedClassName = savedClass;
+                    } else {
+                        const exists = this.classes.some(c => c.class_name === this.selectedClassName);
+                        if (!exists) {
+                            this.selectedClassName = this.classes[0].class_name;
+                        }
                     }
                 } else {
                     this.selectedClassName = '';
@@ -74,6 +80,9 @@ const CMPortalModule = {
 
     async selectClass(className) {
         this.selectedClassName = className;
+        try {
+            localStorage.setItem('evi_last_cm_class', className);
+        } catch (e) {}
         await this.loadRosterForClass(className);
         this.renderPortal();
     },

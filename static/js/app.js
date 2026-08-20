@@ -28,8 +28,10 @@ const App = {
         // Setup sidebar interactions
         this.setupSidebar();
 
-        // Navigate to initial page
-        this.navigate(window.location.hash || '#dashboard');
+        // Navigate to initial page (tự động khôi phục trang làm việc gần nhất)
+        const savedPage = localStorage.getItem('evi_last_page');
+        const initialHash = window.location.hash || (savedPage ? `#${savedPage}` : '#dashboard');
+        this.navigate(initialHash);
 
         // Periodic Admin notification check (every 25 seconds)
         setInterval(() => {
@@ -88,6 +90,11 @@ const App = {
      */
     navigate(hash) {
         const page = hash.replace('#', '') || 'dashboard';
+
+        // Tự động ghi nhớ trang làm việc gần nhất
+        try {
+            localStorage.setItem('evi_last_page', page);
+        } catch (e) {}
 
         // Update active nav item
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -406,6 +413,44 @@ const App = {
             toast.style.transform = 'translateY(10px)';
             setTimeout(() => toast.remove(), 300);
         }, 4000);
+    },
+
+    /**
+     * Tự động ghi nhớ tác vụ gần nhất của người dùng
+     */
+    logUserAction(actionType, description, targetModule = 'GENERAL', targetId = '') {
+        try {
+            const user = (typeof AuthModule !== 'undefined' && AuthModule.currentUser) ? AuthModule.currentUser : { username: 'guest', full_name: 'Khách' };
+            const recentKey = `evi_recent_actions_${user.username}`;
+            let recent = JSON.parse(localStorage.getItem(recentKey) || '[]');
+            const newAction = {
+                action_type: actionType,
+                description: description,
+                target_module: targetModule,
+                target_id: targetId,
+                timestamp: new Date().toISOString(),
+                time_str: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+            };
+            recent.unshift(newAction);
+            if (recent.length > 25) recent = recent.slice(0, 25);
+            localStorage.setItem(recentKey, JSON.stringify(recent));
+        } catch (e) {
+            console.warn('Could not save local user action:', e);
+        }
+    },
+
+    /**
+     * Lấy danh sách tác vụ gần nhất của user hiện tại
+     */
+    getRecentUserActions(limit = 10) {
+        try {
+            const user = (typeof AuthModule !== 'undefined' && AuthModule.currentUser) ? AuthModule.currentUser : { username: 'guest' };
+            const recentKey = `evi_recent_actions_${user.username}`;
+            const recent = JSON.parse(localStorage.getItem(recentKey) || '[]');
+            return recent.slice(0, limit);
+        } catch (e) {
+            return [];
+        }
     },
 };
 
