@@ -165,6 +165,7 @@ const ScheduleModule = {
             if (s.class_name.startsWith('Galax')) pillBg = 'background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe;';
             if (s.class_name.startsWith('Moon')) pillBg = 'background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc;';
 
+            const defaultDriveUrl = (s && s.lesson_plan_url) || "https://drive.google.com/drive/folders/1JBDNHJLPorVjqbEHfHJgObhP9wsEejTz?usp=sharing";
             const isPinned = !!s.is_pinned;
             const lessonBtnLabel = s.current_buoi ? (isPinned ? `📌 Lesson ${s.current_buoi}` : `Lesson ${s.current_buoi}`) : 'Syllabus';
             const cleanUnit = (s.current_unit || '').replace(/\s+/g, ' ').trim();

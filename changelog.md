@@ -1,5 +1,13 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.1.3] - 2026-08-20
+### 🐛 Sửa Lỗi Hiển Thị Thời Khóa Biểu (Fix defaultDriveUrl ReferenceError)
+- **Sửa Lỗi Khởi Tạo Biến URL Thư Mục Giáo Án (`static/js/schedule.js`)**:
+  - Khắc phục lỗi `defaultDriveUrl is not defined` khi render ma trận thời khóa biểu tuần trên trang chủ và Dashboard.
+  - Định nghĩa chuẩn xác `defaultDriveUrl` với fallback an toàn về thư mục Google Drive TEMPLATE.
+- **Cập Nhật Cache Buster Phiên Bản v5.1.3 (`static/index.html`)**:
+  - Gắn `?v=5.1.3` vào toàn bộ script frontend.
+
 ## [v5.1.2] - 2026-08-20
 ### ⏩ Tính Năng Nhảy Bài (Đẩy Sớm Tiến Độ Lịch Học) & Căn Chỉnh Tiến Độ Thực Tế Lớp Moon 5.1
 - **Căn Chỉnh Tiến Độ Thực Tế Lớp Moon 5.1 (`database/evi_center.db`)**:
