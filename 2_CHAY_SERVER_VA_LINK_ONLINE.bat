@@ -62,47 +62,34 @@ echo     -> Flask Backend đã sẵn sàng trên cổng 5001!
 echo.
 
 :: -------------------------------------------------------------------------------
-:: 4. KHỞI TẠO CLOUDFLARE TUNNEL ONLINE LINK
+:: 4. KHỞI TẠO ĐƯỜNG LINK ONLINE CỐ ĐỊNH (LOCALTUNNEL & CLOUDFLARE)
 :: -------------------------------------------------------------------------------
-echo [3/4] Đang tạo đường link Online HTTPS qua Cloudflare Tunnel...
-set "CF_LOG=%TEMP%\cloudflared_evi.log"
-if exist "%CF_LOG%" del /f /q "%CF_LOG%" >nul 2>&1
-set "PUBLIC_URL="
+echo [3/4] Đang kích hoạt đường link Online cố định (https://vicarecrm.loca.lt)...
 
-if not exist "cloudflared.exe" goto SKIP_TUNNEL
-
-start "EVI Cloudflare Tunnel" /min "%~dp0cloudflared.exe" tunnel --url http://127.0.0.1:5001 --logfile "%CF_LOG%"
-
-:: Đợi và trích xuất URL từ log
-set "TUNNEL_WAIT=0"
-:WAIT_TUNNEL
-ping 127.0.0.1 -n 2 >nul
-if not exist "%CF_LOG%" goto TUNNEL_RETRY
-
-for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -Command "(Get-Content -Path '%CF_LOG%' -ErrorAction SilentlyContinue | Select-String 'https://[a-zA-Z0-9-]+\.trycloudflare\.com').Matches.Value | Select-Object -First 1"`) do (
-    set "PUBLIC_URL=%%L"
+:: Lấy Tunnel Password (Public IP)
+set "TUNNEL_PASS=Đang kiểm tra..."
+for /f "usebackq tokens=*" %%P in (`powershell -NoProfile -Command "try { (Invoke-RestMethod -Uri 'https://api.ipify.org' -TimeoutSec 3).Trim() } catch { 'Xem IP may server' }"`) do (
+    set "TUNNEL_PASS=%%P"
 )
 
-if defined PUBLIC_URL goto TUNNEL_DONE
+:: Bật Localtunnel cố định: https://vicarecrm.loca.lt
+start "EVI Localtunnel" /min cmd /c "npx -y localtunnel --port 5001 --subdomain vicarecrm"
 
-:TUNNEL_RETRY
-set /a TUNNEL_WAIT+=1
-if %TUNNEL_WAIT% GEQ 15 goto TUNNEL_TIMEOUT
-echo       -> Đang kết nối Cloudflare mạng toàn cầu... (%TUNNEL_WAIT%s)
-goto WAIT_TUNNEL
+:: Bật thêm Cloudflare Tunnel làm đường link dự phòng song song
+set "CF_LOG=%TEMP%\cloudflared_evi.log"
+if exist "%CF_LOG%" del /f /q "%CF_LOG%" >nul 2>&1
+set "CF_URL="
 
-:TUNNEL_TIMEOUT
-echo     -> Đang tiếp tục lấy link từ Cloudflare...
-goto TUNNEL_DONE
+if exist "cloudflared.exe" (
+    start "EVI Cloudflare Tunnel" /min "%~dp0cloudflared.exe" tunnel --url http://127.0.0.1:5001 --logfile "%CF_LOG%"
+    ping 127.0.0.1 -n 4 >nul
+    if exist "%CF_LOG%" (
+        for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -Command "(Get-Content -Path '%CF_LOG%' -ErrorAction SilentlyContinue | Select-String 'https://[a-zA-Z0-9-]+\.trycloudflare\.com').Matches.Value | Select-Object -First 1"`) do (
+            set "CF_URL=%%L"
+        )
+    )
+)
 
-:TUNNEL_DONE
-echo     -> Tạo link Cloudflare Tunnel thành công!
-goto GET_LAN_IP
-
-:SKIP_TUNNEL
-echo     -> [LƯU Ý] Chưa có cloudflared.exe. Bạn có thể chạy '1_CAI_DAT_SERVER_TU_DONG.bat' để tải tự động.
-
-:GET_LAN_IP
 :: -------------------------------------------------------------------------------
 :: 5. TÌM ĐỊA CHỈ IP MẠNG NỘI BỘ (LAN)
 :: -------------------------------------------------------------------------------
@@ -113,34 +100,35 @@ for /f "usebackq tokens=*" %%I in (`powershell -NoProfile -Command "(Get-NetIPAd
 
 echo.
 echo ===============================================================================
-echo   🎉 HỆ THỐNG EVI DASHBOARD ĐÃ SẴN SÀNG HOẠT ĐỘNG!
+echo   🎉 HỆ THỐNG EVI DASHBOARD ĐÃ SẴN SÀNG HOẠT ĐỘNG 24/7!
 echo ===============================================================================
 echo.
-echo   💻 1. TRUY CẬP TRÊN MÁY SERVER NÀY:
-echo      👉 http://127.0.0.1:5001
+echo   🌐 1. ĐƯỜNG LINK ONLINE CỐ ĐỊNH CHÍNH THỨC (TRUY CẬP TỪ XA MỌI NƠI):
+echo      👉 https://vicarecrm.loca.lt
 echo.
-echo   📶 2. TRUY CẬP CÙNG MẠNG WI-FI / MẠNG NỘI BỘ (LAN):
+echo      🔑 Mật khẩu Tunnel (nếu trang web hỏi lần đầu truy cập):
+echo         [ %TUNNEL_PASS% ]
+echo.
+if defined CF_URL (
+    echo   🛡️ 2. ĐƯỜNG LINK ONLINE DỰ PHÒNG (CLOUDFLARE):
+    echo      👉 %CF_URL%
+    echo.
+)
+echo   📶 3. TRUY CẬP CÙNG MẠNG WI-FI / MẠNG NỘI BỘ (LAN):
 echo      👉 http://%LAN_IP%:5001
 echo.
-if defined PUBLIC_URL (
-    echo   🌐 3. ĐƯỜNG LINK ONLINE 24/7 (TRUY CẬP TỪ XA BẤT KỲ ĐÂU):
-    echo      👉 %PUBLIC_URL%
-    echo.
-    echo      (Gửi link trên cho Giáo viên, Nhân viên CM hoặc mở trên Điện thoại)
-) else (
-    echo   🌐 3. ĐƯỜNG LINK ONLINE:
-    echo      Đang tạo kết nối ngầm... Bạn có thể xem trong file %CF_LOG%
-)
+echo   💻 4. TRUY CẬP TRỰC TIẾP TRÊN MÁY SERVER NÀY:
+echo      👉 http://127.0.0.1:5001
 echo.
 echo ===============================================================================
-echo   [LƯU Ý QUAN TRỌNG]:
-echo   • Giữ cửa sổ này mở để Server và Link Online tiếp tục hoạt động 24/7.
+echo   [LƯU Ý]:
+echo   • Giữ cửa sổ này mở để Server và Link Online tiếp tục hoạt động.
 echo   • Khi muốn dừng hệ thống, chạy file [4_DUNG_SERVER.bat] hoặc đóng cửa sổ này.
 echo ===============================================================================
 echo.
 
 :: Tự động mở trình duyệt
-start http://127.0.0.1:5001
+start https://vicarecrm.loca.lt
 
 echo Nhấn phím bất kỳ hoặc thu nhỏ cửa sổ này để Server chạy ngầm...
 pause >nul

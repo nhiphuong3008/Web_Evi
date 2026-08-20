@@ -151,26 +151,46 @@ echo     -> Đang cài đặt các gói lõi: Flask, SQLAlchemy, Gspread...
 "%VENV_PIP%" install flask flask-cors sqlalchemy gspread google-auth python-dotenv requests openpyxl
 
 :: -------------------------------------------------------------------------------
-:: BƯỚC 4: TẢI CLOUDFLARE TUNNEL (CLOUDFLARED.EXE)
+:: BƯỚC 4: THIẾT LẬP CÔNG CỤ TUNNEL ONLINE (LOCALTUNNEL & CLOUDFLARE)
 :: -------------------------------------------------------------------------------
 :STEP_4_TUNNEL
 echo.
-echo [4/5] Thiết lập công cụ Cloudflare Tunnel (cho link Online 24/7)...
+echo [4/5] Thiết lập công cụ Online Link (Localtunnel cố định & Cloudflare)...
 
+:: Kiểm tra Node.js / NPX cho Localtunnel
+where npx >nul 2>&1
+if %ERRORLEVEL% EQU 0 goto NODE_EXISTS
+
+if exist "%ProgramFiles%\nodejs\npx.cmd" (
+    set "PATH=%ProgramFiles%\nodejs;%PATH%"
+    goto NODE_EXISTS
+)
+
+echo     -> Đang tự động cài đặt Node.js (cho Localtunnel link cố định)...
+set "NODE_MSI=%TEMP%\node-v20.18.0-x64.msi"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; try { (New-Object System.Net.WebClient).DownloadFile('https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi', $env:TEMP + '\node-v20.18.0-x64.msi') } catch {}"
+
+if exist "%NODE_MSI%" (
+    msiexec /i "%NODE_MSI%" /quiet /qn /norestart
+    timeout /t 5 /nobreak >nul
+    set "PATH=%ProgramFiles%\nodejs;%PATH%"
+    echo     -> Đã cài đặt Node.js hoàn tất.
+) else (
+    echo     -> Bỏ qua Node.js nếu tải lâu, sẽ dùng Cloudflare Tunnel.
+)
+
+:NODE_EXISTS
 if exist "cloudflared.exe" goto CF_EXISTS
 
-echo     -> Đang tải cloudflared.exe từ Cloudflare Official...
+echo     -> Đang tải cloudflared.exe dự phòng từ Cloudflare...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object System.Net.WebClient).DownloadFile('https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe', 'cloudflared.exe')"
 
 if exist "cloudflared.exe" (
     echo     -> Đã tải cloudflared.exe thành công!
-) else (
-    echo     -> [LƯU Ý] Chưa tải được cloudflared.exe. Server vẫn chạy nội bộ bình thường.
 )
-goto STEP_5_ENV
 
 :CF_EXISTS
-echo     -> cloudflared.exe đã sẵn sàng trong thư mục dự án.
+echo     -> Các công cụ Tunnel đã sẵn sàng!
 
 :: -------------------------------------------------------------------------------
 :: BƯỚC 5: CẤU HÌNH FILE .ENV VÀ WINDOWS FIREWALL
