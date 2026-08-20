@@ -1406,27 +1406,68 @@ def get_schedule_matrix_db(cm_staff_name=None):
         ).order_by(ClassSchedule.id.asc()).all()
         s_dicts = [s.to_dict() for s in all_schedules]
 
-        # Tự động tính toán & bổ sung Lesson buổi hiện tại cho từng lớp
+        # Tự động tính toán & cache thông tin giáo án từng lớp
         distinct_classes = set(s['class_name'] for s in s_dicts if s.get('class_name'))
-        lesson_info_map = {}
+        class_lessons_cache = {}
         for cname in distinct_classes:
             try:
                 log_res = get_class_lesson_log_db(cname)
-                lessons = log_res.get('lessons', [])
-                pinned_num = log_res.get('pinned_lesson_num')
+                class_lessons_cache[cname] = {
+                    'lessons': log_res.get('lessons', []),
+                    'pinned_lesson_num': log_res.get('pinned_lesson_num')
+                }
+            except Exception as _e:
+                logger.error(f"Error caching lesson info for {cname}: {_e}")
+                class_lessons_cache[cname] = {'lessons': [], 'pinned_lesson_num': None}
+
+        today = datetime.date.today()
+        # Monday of current week
+        start_of_week = today - datetime.timedelta(days=today.weekday())
+
+        days_order = [
+            (0, 'Mon', 'Thứ 2 (MON)'),
+            (1, 'Tue', 'Thứ 3 (TUE)'),
+            (2, 'Wed', 'Thứ 4 (WED)'),
+            (3, 'Thu', 'Thứ 5 (THU)'),
+            (4, 'Fri', 'Thứ 6 (FRI)'),
+            (5, 'Sat', 'Thứ 7 (SAT)'),
+            (6, 'Sun', 'Chủ Nhật (SUN)')
+        ]
+
+        matrix = []
+        for w_idx, code_day, full_day in days_order:
+            target_dt = start_of_week + datetime.timedelta(days=w_idx)
+            target_d_str = target_dt.strftime('%Y-%m-%d')
+            target_d_disp = target_dt.strftime('%d/%m')
+
+            raw_day_items = [s for s in s_dicts if code_day.lower() in s['day'].lower() or full_day.lower() in s['day'].lower()]
+            day_items = []
+            for item in raw_day_items:
+                s_copy = item.copy()
+                cname = s_copy.get('class_name')
+                c_data = class_lessons_cache.get(cname, {})
+                lessons = c_data.get('lessons', [])
+                pinned_num = c_data.get('pinned_lesson_num')
+
                 current_buoi = None
                 current_unit = None
                 current_title = None
                 is_pinned = False
-                if lessons:
-                    if pinned_num:
-                        pinned_matches = [l for l in lessons if l.get('buoi') == pinned_num]
-                        if pinned_matches:
-                            curr_item = pinned_matches[0]
-                            is_pinned = True
-                        else:
-                            curr_item = lessons[0]
+
+                if pinned_num:
+                    pinned_matches = [l for l in lessons if l.get('buoi') == pinned_num]
+                    if pinned_matches:
+                        curr_item = pinned_matches[0]
+                        is_pinned = True
                     else:
+                        curr_item = lessons[0] if lessons else {}
+                else:
+                    # Look for exact lesson on target_dt
+                    day_matches = [l for l in lessons if l.get('full_date') == target_d_str or l.get('date') == target_d_disp]
+                    if day_matches:
+                        curr_item = day_matches[0]
+                    else:
+                        # Fallback to active/today/nearest completed lesson
                         today_lessons = [l for l in lessons if l.get('status_code') == 'today']
                         completed = [l for l in lessons if l.get('status_code') == 'completed']
                         if today_lessons:
@@ -1434,44 +1475,15 @@ def get_schedule_matrix_db(cm_staff_name=None):
                         elif completed:
                             curr_item = completed[-1]
                         else:
-                            curr_item = lessons[0]
-                    
-                    current_buoi = curr_item.get('buoi')
-                    current_unit = curr_item.get('unit_name')
-                    current_title = curr_item.get('lesson_title')
-                
-                lesson_info_map[cname] = {
-                    'current_buoi': current_buoi,
-                    'current_unit': current_unit,
-                    'current_title': current_title,
-                    'is_pinned': is_pinned,
-                    'total_lessons': len(lessons)
-                }
-            except Exception as _e:
-                logger.error(f"Error getting lesson info for {cname}: {_e}")
-                lesson_info_map[cname] = {'current_buoi': None, 'is_pinned': False, 'total_lessons': 0}
+                            curr_item = lessons[0] if lessons else {}
 
-        for s in s_dicts:
-            c_info = lesson_info_map.get(s['class_name'], {})
-            s['current_buoi'] = c_info.get('current_buoi')
-            s['current_unit'] = c_info.get('current_unit')
-            s['current_title'] = c_info.get('current_title')
-            s['is_pinned'] = c_info.get('is_pinned', False)
-            s['total_lessons'] = c_info.get('total_lessons')
+                s_copy['current_buoi'] = curr_item.get('buoi')
+                s_copy['current_unit'] = curr_item.get('unit_name')
+                s_copy['current_title'] = curr_item.get('lesson_title')
+                s_copy['is_pinned'] = is_pinned
+                s_copy['total_lessons'] = len(lessons)
+                day_items.append(s_copy)
 
-        days_order = [
-            ('Mon', 'Thứ 2 (MON)'),
-            ('Tue', 'Thứ 3 (TUE)'),
-            ('Wed', 'Thứ 4 (WED)'),
-            ('Thu', 'Thứ 5 (THU)'),
-            ('Fri', 'Thứ 6 (FRI)'),
-            ('Sat', 'Thứ 7 (SAT)'),
-            ('Sun', 'Chủ Nhật (SUN)')
-        ]
-
-        matrix = []
-        for code_day, full_day in days_order:
-            day_items = [s for s in s_dicts if code_day.lower() in s['day'].lower() or full_day.lower() in s['day'].lower()]
             mt5_items = [s for s in day_items if '5' in s['shift_code']]
             mt6_items = [s for s in day_items if '6' in s['shift_code']]
 

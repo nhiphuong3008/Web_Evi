@@ -1,5 +1,16 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.1.5] - 2026-08-20
+### 📅 Khớp Nối Chuẩn Xác Bài Học Từng Ngày Trên Thời Khóa Biểu Tuần (Day-Specific Lesson Mapping)
+- **Căn Khớp Bài Học Từng Ngày Cho Ma Trận Thời Khóa Biểu (`services/db_service.py`)**:
+  - Nâng cấp thuật toán `get_schedule_matrix_db()`: Thay vì gán 1 số buổi chung cho cả tuần, hệ thống đối soát chính xác ngày học thực tế của từng thứ trong tuần (từ Thứ 2 đến Chủ nhật) với giáo án lớp học.
+  - Ví dụ với lớp **Moon 5.1**:
+    - **Thứ 4 (19/08)**: Hiển thị chính xác **`Lesson 47`**.
+    - **Thứ 7 (22/08)**: Hiển thị chính xác **`Lesson 48`**.
+  - Đảm bảo 100% các thứ khác nhau trong tuần của cùng 1 lớp đều phản ánh đúng bài học được dạy của ngày hôm đó.
+- **Cập Nhật Cache Buster Phiên Bản v5.1.5 (`static/index.html`)**:
+  - Gắn `?v=5.1.5` vào toàn bộ script frontend.
+
 ## [v5.1.4] - 2026-08-20
 ### 🌟 Mở Rộng Toàn Diện Giao Diện Pop-up Giáo Án & Hoàn Thiện Cơ Chế Lùi Lịch Thực Tế
 - **Mở Rộng Giao Diện Pop-up Hiển Thị 100% Tính Năng (`static/css/style.css`, `static/js/schedule.js`, `static/js/dashboard.js`)**:
