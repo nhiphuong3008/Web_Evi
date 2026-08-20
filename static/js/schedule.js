@@ -671,7 +671,10 @@ const ScheduleModule = {
                     alert('✅ Đã cập nhật điều chỉnh lùi lịch học thành công!');
                 }
                 // Re-open modal with updated log
-                this.openLessonLogModal(className);
+                await this.openLessonLogModal(className);
+
+                // Refresh all active timetable views (Dashboard & Schedule page)
+                this.refreshActiveScheduleViews();
             } else {
                 alert('Lỗi lùi lịch: ' + (res.error || res.message || 'Không thể cập nhật'));
             }
@@ -699,16 +702,32 @@ const ScheduleModule = {
                 // Re-open modal with updated log
                 await this.openLessonLogModal(className);
 
-                // Refresh main schedule matrix in background
-                const container = document.getElementById('schedule');
-                if (container && typeof this.renderPage === 'function') {
-                    this.renderPage(container);
-                }
+                // Refresh all active timetable views (Dashboard & Schedule page)
+                this.refreshActiveScheduleViews();
             } else {
                 alert('Lỗi nhảy bài: ' + (res.error || res.message || 'Không thể cập nhật'));
             }
         } catch (e) {
             alert('Lỗi kết nối: ' + e.message);
+        }
+    },
+
+    /**
+     * Tự động làm mới toàn bộ các bảng Thời khóa biểu đang hiển thị (cả trang Dashboard và trang Thời khóa biểu)
+     */
+    refreshActiveScheduleViews() {
+        // 1. If on full Schedule page:
+        const scheduleContainer = document.getElementById('schedule');
+        if (scheduleContainer && typeof this.renderPage === 'function') {
+            this.renderPage(scheduleContainer);
+        }
+
+        // 2. If on Dashboard page:
+        const dashboardSchedContainer = document.getElementById('cm-dashboard-schedule-container');
+        if (dashboardSchedContainer && typeof this.renderCmDashboardSchedule === 'function') {
+            const user = (typeof Auth !== 'undefined') ? Auth.getUser() : null;
+            const cmName = this.selectedCm || (user && user.role === 'cm' ? (user.cm_staff_name || user.full_name) : (user && user.cm_staff_name ? user.cm_staff_name : 'AnhNV'));
+            this.renderCmDashboardSchedule(dashboardSchedContainer, cmName);
         }
     },
 
@@ -1135,11 +1154,8 @@ const ScheduleModule = {
                 // Re-open/refresh modal with updated log
                 await this.openLessonLogModal(className);
 
-                // Refresh main schedule matrix in background
-                const container = document.getElementById('schedule');
-                if (container && typeof this.renderPage === 'function') {
-                    this.renderPage(container);
-                }
+                // Refresh all active timetable views (Dashboard & Schedule page)
+                this.refreshActiveScheduleViews();
             } else {
                 alert('Lỗi nhảy bài: ' + (res.error || res.message || 'Không thể cập nhật'));
             }
