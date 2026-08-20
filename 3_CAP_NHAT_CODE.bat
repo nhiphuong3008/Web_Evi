@@ -11,14 +11,9 @@ echo.
 cd /d "%~dp0"
 
 echo [1/3] Đang kéo cập nhật mới nhất từ GitHub Repository...
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
 
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo [LỖI] Không thể kéo code từ Git. Vui lòng kiểm tra kết nối mạng hoặc xung đột file local.
-    pause
-    exit /b 1
-)
 
 echo.
 echo [2/3] Kiểm tra và cập nhật các thư viện mới (nếu có)...
