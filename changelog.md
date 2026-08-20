@@ -1,5 +1,18 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.3.0] - 2026-08-20
+### 🚀 Chính Thức Go-Live Server Độc Lập 100% CSDL SQLite (Ngắt Kết Nối Google Sheets & PythonAnywhere)
+- **Hợp Nhất Toàn Bộ Dữ Liệu PythonAnywhere & Google Sheets Lần Cuối (`database/evi_center.db`)**:
+  - Tải snapshot CSDL từ PythonAnywhere và hợp nhất toàn bộ bản ghi `activity_logs` và nhật ký chưa đồng bộ.
+  - Quét đồng bộ lần cuối cùng toàn bộ dữ liệu mới nhất từ Google Sheets (bổ sung 148 BTVN và 668 điểm thi mới).
+  - Tạo bản sao lưu chốt Go-Live tại `database/backups/evi_center_golive_snapshot.db`.
+- **Ngắt Kết Nối Hoàn Toàn Google Sheets & PythonAnywhere (`app.py`, `config.py`)**:
+  - Vô hiệu hóa Background Sync Scheduler quét Google Sheets chạy ngầm, loại bỏ hoàn toàn sự phụ thuộc vào mạng bên ngoài.
+  - Vô hiệu hóa tính năng tự động đồng bộ từ PythonAnywhere lúc khởi động (`AUTO_SYNC_DB_ON_STARTUP=0`).
+  - Hệ thống vận hành 100% độc lập, siêu tốc độ trực tiếp trên CSDL SQLite cục bộ.
+- **Chuẩn Hóa Cổng Port 5001 Cho Hệ Thống Server & Cloudflare Tunnel**:
+  - Đồng bộ `FLASK_PORT=5001` trên toàn bộ Backend, cấu hình môi trường `.env.example`, và script khởi chạy `2_CHAY_SERVER_VA_LINK_ONLINE.bat`.
+
 ## [v5.2.0] - 2026-08-20
 ### 🖥️ Đóng Gói Bộ Script Chuyển Giao Server & Mở Link Online 24/7 (Cloudflare Tunnel)
 - **Tự Động Hóa 100% Cài Đặt Môi Trường Server (`1_CAI_DAT_SERVER_TU_DONG.bat`)**:
