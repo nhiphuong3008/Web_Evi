@@ -1,6 +1,23 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
-## [v5.1.5] - 2026-08-20
+## [v5.2.0] - 2026-08-20
+### 🖥️ Đóng Gói Bộ Script Chuyển Giao Server & Mở Link Online 24/7 (Cloudflare Tunnel)
+- **Tự Động Hóa 100% Cài Đặt Môi Trường Server (`1_CAI_DAT_SERVER_TU_DONG.bat`)**:
+  - Tự động phát hiện và tải/cài đặt Python 3.12 (Silent Install) nếu máy server mới chưa có.
+  - Tự động khởi tạo môi trường ảo `venv` và cài đặt trọn vẹn toàn bộ dependencies từ `requirements.txt`.
+  - Tự động tải công cụ Cloudflare Tunnel (`cloudflared.exe`) bản mới nhất.
+  - Tự sinh file cấu hình `.env` và mở cổng Firewall Windows (5001) cho mạng nội bộ.
+- **Khởi Chạy Server & Mở Đường Link Online 24/7 (`2_CHAY_SERVER_VA_LINK_ONLINE.bat`)**:
+  - Khởi chạy Flask Backend (`app.py`) trên cổng 5001.
+  - Tự động kết nối Cloudflare Tunnel tạo link HTTPS bảo mật tốc độ cao (`https://*.trycloudflare.com`) truy cập từ xa mọi lúc mọi nơi như PythonAnywhere mà không cần mở port modem.
+  - Hiển thị bảng điều khiển trực quan 3 đường link: Localhost, Wi-Fi LAN nội bộ, và Link Public Online 24/7.
+- **Đồng Bộ Mã Nguồn Git Một Chạm (`3_CAP_NHAT_CODE.bat`)**:
+  - Hỗ trợ máy Server mới cập nhật code mới từ GitHub (`git pull origin main`) và tự nạp thư viện mới nhanh chóng.
+- **Tắt Server An Toàn (`4_DUNG_SERVER.bat`)**:
+  - Dọn dẹp an toàn các tiến trình Python Backend và Cloudflare Tunnel.
+- **Tài Liệu Hướng Dẫn Chi Tiết A-Z (`HUONG_DAN_CHUYEN_MAY_SERVER.md`)**:
+  - Cung cấp quy trình 3 bước trực quan bằng tiếng Việt cho máy mới.
+
 ### 📅 Khớp Nối Chuẩn Xác Bài Học Từng Ngày Trên Thời Khóa Biểu Tuần (Day-Specific Lesson Mapping)
 - **Căn Khớp Bài Học Từng Ngày Cho Ma Trận Thời Khóa Biểu (`services/db_service.py`)**:
   - Nâng cấp thuật toán `get_schedule_matrix_db()`: Thay vì gán 1 số buổi chung cho cả tuần, hệ thống đối soát chính xác ngày học thực tế của từng thứ trong tuần (từ Thứ 2 đến Chủ nhật) với giáo án lớp học.

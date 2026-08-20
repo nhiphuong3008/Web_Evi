@@ -30,4 +30,5 @@ Thumbs.db
 # Logs & Temp
 *.log
 .system_generated/
+cloudflared.exe
 
