@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title [EVI] Đang Chạy Server & Mở Đường Link Online
+title [EVI] Đang Chạy Server & Mở Đường Link Online 24/7
 color 0A
 
 echo ===============================================================================
@@ -20,6 +20,7 @@ if exist ".env" (
 :: -------------------------------------------------------------------------------
 echo [1/4] Đang dọn dẹp các tiến trình cũ (nếu có)...
 powershell -Command "Get-CimInstance Win32_Process -Filter 'Name = ''python.exe'' AND CommandLine LIKE ''%%app.py%%''' | Remove-CimInstance" >nul 2>&1
+taskkill /f /im ngrok.exe >nul 2>&1
 taskkill /f /im cloudflared.exe >nul 2>&1
 
 :: -------------------------------------------------------------------------------
@@ -62,27 +63,28 @@ echo     -> Flask Backend đã sẵn sàng trên cổng 5001!
 echo.
 
 :: -------------------------------------------------------------------------------
-:: 4. KHỞI TẠO ĐƯỜNG LINK ONLINE CỐ ĐỊNH (LOCALTUNNEL & CLOUDFLARE)
+:: 4. KHỞI TẠO ĐƯỜNG LINK ONLINE CỐ ĐỊNH (NGROK & CLOUDFLARE)
 :: -------------------------------------------------------------------------------
-echo [3/4] Đang kích hoạt đường link Online cố định (https://vicarecrm.loca.lt)...
+echo [3/4] Đang kết nối đường link Online cố định (hardy-porthole-wildland.ngrok-free.dev)...
 
-:: Lấy Tunnel Password (Public IP)
-set "TUNNEL_PASS=Đang kiểm tra..."
-for /f "usebackq tokens=*" %%P in (`powershell -NoProfile -Command "try { (Invoke-RestMethod -Uri 'https://api.ipify.org' -TimeoutSec 3).Trim() } catch { 'Xem IP may server' }"`) do (
-    set "TUNNEL_PASS=%%P"
+:: Đảm bảo ngrok.exe tồn tại
+if not exist "ngrok.exe" (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object System.Net.WebClient).DownloadFile('https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip', 'ngrok.zip'); Expand-Archive -Path 'ngrok.zip' -DestinationPath '.' -Force; Remove-Item 'ngrok.zip' -ErrorAction SilentlyContinue"
 )
 
-:: Bật Localtunnel cố định: https://vicarecrm.loca.lt
-start "EVI Localtunnel" /min cmd /c "npx -y localtunnel --port 5001 --subdomain vicarecrm"
+if exist "ngrok.exe" (
+    "%~dp0ngrok.exe" config add-authtoken 3IBiTbkXguuBIBqAroSuk5Y3ugF_6yudsrKPch9sr97rURSqk >nul 2>&1
+    start "EVI Ngrok Tunnel" /min "%~dp0ngrok.exe" http --url=hardy-porthole-wildland.ngrok-free.dev 5001
+)
 
-:: Bật thêm Cloudflare Tunnel làm đường link dự phòng song song
+:: Bật thêm Cloudflare Tunnel dự phòng song song
 set "CF_LOG=%TEMP%\cloudflared_evi.log"
 if exist "%CF_LOG%" del /f /q "%CF_LOG%" >nul 2>&1
 set "CF_URL="
 
 if exist "cloudflared.exe" (
     start "EVI Cloudflare Tunnel" /min "%~dp0cloudflared.exe" tunnel --url http://127.0.0.1:5001 --logfile "%CF_LOG%"
-    ping 127.0.0.1 -n 4 >nul
+    ping 127.0.0.1 -n 3 >nul
     if exist "%CF_LOG%" (
         for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -Command "(Get-Content -Path '%CF_LOG%' -ErrorAction SilentlyContinue | Select-String 'https://[a-zA-Z0-9-]+\.trycloudflare\.com').Matches.Value | Select-Object -First 1"`) do (
             set "CF_URL=%%L"
@@ -103,11 +105,10 @@ echo ===========================================================================
 echo   🎉 HỆ THỐNG EVI DASHBOARD ĐÃ SẴN SÀNG HOẠT ĐỘNG 24/7!
 echo ===============================================================================
 echo.
-echo   🌐 1. ĐƯỜNG LINK ONLINE CỐ ĐỊNH CHÍNH THỨC (TRUY CẬP TỪ XA MỌI NƠI):
-echo      👉 https://vicarecrm.loca.lt
+echo   🌐 1. ĐƯỜNG LINK ONLINE CỐ ĐỊNH VĨNH VIỄN (TRUY CẬP TỪ XA MỌI NƠI 24/7):
+echo      👉 https://hardy-porthole-wildland.ngrok-free.dev
 echo.
-echo      🔑 Mật khẩu Tunnel (nếu trang web hỏi lần đầu truy cập):
-echo         [ %TUNNEL_PASS% ]
+echo      (Link này cố định trọn đời, không bao giờ thay đổi dù tắt mở Server!)
 echo.
 if defined CF_URL (
     echo   🛡️ 2. ĐƯỜNG LINK ONLINE DỰ PHÒNG (CLOUDFLARE):
@@ -121,14 +122,14 @@ echo   💻 4. TRUY CẬP TRỰC TIẾP TRÊN MÁY SERVER NÀY:
 echo      👉 http://127.0.0.1:5001
 echo.
 echo ===============================================================================
-echo   [LƯU Ý]:
+echo   [LƯU Ý QUAN TRỌNG]:
 echo   • Giữ cửa sổ này mở để Server và Link Online tiếp tục hoạt động.
 echo   • Khi muốn dừng hệ thống, chạy file [4_DUNG_SERVER.bat] hoặc đóng cửa sổ này.
 echo ===============================================================================
 echo.
 
-:: Tự động mở trình duyệt
-start https://vicarecrm.loca.lt
+:: Tự động mở trình duyệt với domain cố định
+start https://hardy-porthole-wildland.ngrok-free.dev
 
 echo Nhấn phím bất kỳ hoặc thu nhỏ cửa sổ này để Server chạy ngầm...
 pause >nul

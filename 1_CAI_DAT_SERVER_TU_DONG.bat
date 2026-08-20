@@ -151,46 +151,28 @@ echo     -> Đang cài đặt các gói lõi: Flask, SQLAlchemy, Gspread...
 "%VENV_PIP%" install flask flask-cors sqlalchemy gspread google-auth python-dotenv requests openpyxl
 
 :: -------------------------------------------------------------------------------
-:: BƯỚC 4: THIẾT LẬP CÔNG CỤ TUNNEL ONLINE (LOCALTUNNEL & CLOUDFLARE)
+:: BƯỚC 4: THIẾT LẬP CÔNG CỤ NGROK TUNNEL (LINK CỐ ĐỊNH VĨNH VIỄN)
 :: -------------------------------------------------------------------------------
 :STEP_4_TUNNEL
 echo.
-echo [4/5] Thiết lập công cụ Online Link (Localtunnel cố định & Cloudflare)...
+echo [4/5] Thiết lập công cụ Ngrok Online Link cố định...
 
-:: Kiểm tra Node.js / NPX cho Localtunnel
-where npx >nul 2>&1
-if %ERRORLEVEL% EQU 0 goto NODE_EXISTS
+if exist "ngrok.exe" goto NGROK_EXISTS
 
-if exist "%ProgramFiles%\nodejs\npx.cmd" (
-    set "PATH=%ProgramFiles%\nodejs;%PATH%"
-    goto NODE_EXISTS
+echo     -> Đang tải ngrok.exe bản chính thức...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object System.Net.WebClient).DownloadFile('https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip', 'ngrok.zip'); Expand-Archive -Path 'ngrok.zip' -DestinationPath '.' -Force; Remove-Item 'ngrok.zip' -ErrorAction SilentlyContinue"
+
+:NGROK_EXISTS
+if exist "ngrok.exe" (
+    echo     -> Đang kích hoạt Ngrok Token bản quyền...
+    "%~dp0ngrok.exe" config add-authtoken 3IBiTbkXguuBIBqAroSuk5Y3ugF_6yudsrKPch9sr97rURSqk >nul 2>&1
+    echo     -> Ngrok Tunnel cố định đã được thiết lập thành công!
 )
 
-echo     -> Đang tự động cài đặt Node.js (cho Localtunnel link cố định)...
-set "NODE_MSI=%TEMP%\node-v20.18.0-x64.msi"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; try { (New-Object System.Net.WebClient).DownloadFile('https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi', $env:TEMP + '\node-v20.18.0-x64.msi') } catch {}"
-
-if exist "%NODE_MSI%" (
-    msiexec /i "%NODE_MSI%" /quiet /qn /norestart
-    timeout /t 5 /nobreak >nul
-    set "PATH=%ProgramFiles%\nodejs;%PATH%"
-    echo     -> Đã cài đặt Node.js hoàn tất.
-) else (
-    echo     -> Bỏ qua Node.js nếu tải lâu, sẽ dùng Cloudflare Tunnel.
+:: Tải thêm Cloudflare Tunnel dự phòng
+if not exist "cloudflared.exe" (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; try { (New-Object System.Net.WebClient).DownloadFile('https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe', 'cloudflared.exe') } catch {}" >nul 2>&1
 )
-
-:NODE_EXISTS
-if exist "cloudflared.exe" goto CF_EXISTS
-
-echo     -> Đang tải cloudflared.exe dự phòng từ Cloudflare...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object System.Net.WebClient).DownloadFile('https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe', 'cloudflared.exe')"
-
-if exist "cloudflared.exe" (
-    echo     -> Đã tải cloudflared.exe thành công!
-)
-
-:CF_EXISTS
-echo     -> Các công cụ Tunnel đã sẵn sàng!
 
 :: -------------------------------------------------------------------------------
 :: BƯỚC 5: CẤU HÌNH FILE .ENV VÀ WINDOWS FIREWALL

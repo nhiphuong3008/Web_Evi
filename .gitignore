@@ -31,4 +31,6 @@ Thumbs.db
 *.log
 .system_generated/
 cloudflared.exe
+ngrok.exe
+ngrok.zip
 
