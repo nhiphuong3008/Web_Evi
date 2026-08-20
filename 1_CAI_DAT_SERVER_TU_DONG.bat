@@ -179,7 +179,11 @@ echo     -> cloudflared.exe đã sẵn sàng trong thư mục dự án.
 echo.
 echo [5/5] Cấu hình file môi trường .env và Tường Lửa Windows...
 
-if exist ".env" goto ENV_EXISTS
+if exist ".env" (
+    powershell -NoProfile -Command "(Get-Content .env) -replace 'FLASK_PORT=5000', 'FLASK_PORT=5001' | Set-Content .env"
+    echo     -> File cấu hình .env đã sẵn sàng trên Port 5001.
+    goto FIREWALL_SETUP
+)
 
 if exist ".env.example" (
     copy /y ".env.example" ".env" >nul

@@ -10,6 +10,11 @@ echo.
 
 cd /d "%~dp0"
 
+:: Chuẩn hóa cấu hình Port 5001 trong .env nếu có
+if exist ".env" (
+    powershell -NoProfile -Command "(Get-Content .env) -replace 'FLASK_PORT=5000', 'FLASK_PORT=5001' | Set-Content .env"
+)
+
 :: -------------------------------------------------------------------------------
 :: 1. TẮT CÁC TIẾN TRÌNH CŨ
 :: -------------------------------------------------------------------------------
