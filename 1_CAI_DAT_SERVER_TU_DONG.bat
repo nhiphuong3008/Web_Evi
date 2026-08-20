@@ -8,11 +8,11 @@ echo        🚀 TỰ ĐỘNG CÀI ĐẶT MÔI TRƯỜNG SERVER CHO EVI DASHBOAR
 echo ===============================================================================
 echo.
 echo   Script này sẽ tự động thiết lập toàn bộ máy tính của bạn thành Server:
-echo     1. Kiểm tra / Tự động tải & cài đặt Python 3.12 (nếu chưa có)
+echo     1. Kiểm tra / Tự động tải và cài đặt Python 3.12 (nếu chưa có)
 echo     2. Tạo môi trường ảo cách ly (Python Virtual Environment - venv)
 echo     3. Cài đặt đầy đủ tất cả thư viện (Flask, SQLAlchemy, v.v.)
 echo     4. Tự động tải công cụ Cloudflare Tunnel (tạo link online HTTPS)
-echo     5. Khởi tạo file cấu hình .env & mở cổng tường lửa Windows Firewall
+echo     5. Khởi tạo file cấu hình .env và mở cổng tường lửa Windows Firewall
 echo.
 echo ===============================================================================
 echo.
@@ -22,42 +22,50 @@ cd /d "%~dp0"
 :: -------------------------------------------------------------------------------
 :: BƯỚC 1: KIỂM TRA VÀ CÀI ĐẶT PYTHON
 :: -------------------------------------------------------------------------------
-echo [1/5] Kiểm tra môi trường Python...
+echo [1/5] Kiểm tra môi trường Python thực tế trên máy...
 
 set "PYTHON_EXE="
-where python >nul 2>&1
+
+:: 1. Kiểm tra py launcher
+py -3 -c "import sys; exit(0)" >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
-    set "PYTHON_EXE=python"
-    goto CHECK_PYTHON_DONE
+    set "PYTHON_EXE=py -3"
+    goto PYTHON_FOUND
 )
 
+:: 2. Kiểm tra Python đã cài trong LocalAppData
 if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
     set "PYTHON_EXE=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
-    goto CHECK_PYTHON_DONE
+    goto PYTHON_FOUND
 )
 
 if exist "%ProgramFiles%\Python312\python.exe" (
     set "PYTHON_EXE=%ProgramFiles%\Python312\python.exe"
-    goto CHECK_PYTHON_DONE
+    goto PYTHON_FOUND
 )
 
 if exist "%LOCALAPPDATA%\Programs\Python\Python311\python.exe" (
     set "PYTHON_EXE=%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
-    goto CHECK_PYTHON_DONE
+    goto PYTHON_FOUND
 )
 
-:CHECK_PYTHON_DONE
-if defined PYTHON_EXE goto PYTHON_FOUND
+:: 3. Kiểm tra python trong PATH (chạy code thử để lọc bỏ WindowsApps stub)
+python -c "import sys; exit(0)" >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    set "PYTHON_EXE=python"
+    goto PYTHON_FOUND
+)
+
 goto PYTHON_NOT_FOUND
 
 :PYTHON_FOUND
-echo     -> Đã tìm thấy Python: %PYTHON_EXE%
-"%PYTHON_EXE%" --version
+echo     -> Đã phát hiện Python hợp lệ: %PYTHON_EXE%
+%PYTHON_EXE% --version
 goto STEP_2_VENV
 
 :PYTHON_NOT_FOUND
-echo     -> CHƯA TÌM THẤY PYTHON! Đang tự động tải và cài đặt Python 3.12...
-echo     -> Đang tải từ python.org, vui lòng chờ trong giây lát...
+echo     -> CHƯA CÓ PYTHON! Đang tự động tải và cài đặt Python 3.12 chính thức...
+echo     -> Đang tải installer từ python.org, vui lòng chờ trong giây lát...
 
 set "PY_INSTALLER=%TEMP%\python-3.12.8-amd64.exe"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object System.Net.WebClient).DownloadFile('https://www.python.org/ftp/python/3.12.8/python-3.12.8-amd64.exe', $env:TEMP + '\python-3.12.8-amd64.exe')"
@@ -65,23 +73,29 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager
 if not exist "%PY_INSTALLER%" (
     echo.
     echo [LỖI] Không thể tải Python installer! Vui lòng kiểm tra kết nối Internet.
-    echo Bạn có thể tự cài Python 3.12 thủ công tại: https://www.python.org/downloads/
+    echo Bạn có thể tự tải và cài đặt Python 3.12 thủ công tại: https://www.python.org/downloads/
     pause
     exit /b 1
 )
 
-echo     -> Đang tiến hành cài đặt Python 3.12 vào máy (khoảng 30 giây)...
+echo     -> Đang tiến hành cài đặt Python 3.12 tự động (khoảng 30-45 giây)...
 "%PY_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_pip=1 Include_test=0 SimpleInstall=1
-timeout /t 6 /nobreak >nul
+timeout /t 8 /nobreak >nul
 
 set "PATH=%LOCALAPPDATA%\Programs\Python\Python312;%LOCALAPPDATA%\Programs\Python\Python312\Scripts;%PATH%"
+
 if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
     set "PYTHON_EXE=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
-) else (
-    set "PYTHON_EXE=python"
+    goto PYTHON_FOUND
 )
 
-echo     -> Cài đặt Python 3.12 hoàn tất thành công!
+python -c "import sys; exit(0)" >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    set "PYTHON_EXE=python"
+    goto PYTHON_FOUND
+)
+
+echo     -> Đã cài xong Python 3.12.
 
 :: -------------------------------------------------------------------------------
 :: BƯỚC 2: TẠO VÀ CẤU HÌNH MÔI TRƯỜNG ẢO VENV
@@ -93,10 +107,10 @@ echo [2/5] Cấu hình môi trường ảo Python (venv)...
 if exist "venv\Scripts\python.exe" goto VENV_EXISTS
 
 echo     -> Đang khởi tạo thư mục môi trường ảo venv...
-"%PYTHON_EXE%" -m venv venv
+%PYTHON_EXE% -m venv venv
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo [LỖI] Không thể tạo môi trường ảo venv với lệnh: "%PYTHON_EXE%" -m venv venv
+    echo [LỖI] Không thể tạo môi trường ảo venv!
     pause
     exit /b 1
 )
@@ -197,7 +211,7 @@ echo ===========================================================================
 echo.
 echo   Từ bây giờ, bạn có thể sử dụng các file sau:
 echo.
-echo   👉 [2_CHAY_SERVER_VA_LINK_ONLINE.bat] : Khởi chạy Server + Mở link Online 24/7
+echo   👉 [2_CHAY_SERVER_VA_LINK_ONLINE.bat] : Khởi chạy Server và Mở link Online 24/7
 echo   👉 [3_CAP_NHAT_CODE.bat]              : Kéo code mới nhất từ GitHub về
 echo   👉 [4_DUNG_SERVER.bat]                : Tắt Server an toàn
 echo.
