@@ -23,12 +23,15 @@ taskkill /f /im cloudflared.exe >nul 2>&1
 set "PY_CMD="
 if exist "venv\Scripts\python.exe" (
     set "PY_CMD=venv\Scripts\python.exe"
-) else if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
-    set "PY_CMD=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
-) else (
-    set "PY_CMD=python"
+    goto PYTHON_READY
 )
+if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
+    set "PY_CMD=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+    goto PYTHON_READY
+)
+set "PY_CMD=python"
 
+:PYTHON_READY
 :: -------------------------------------------------------------------------------
 :: 3. KHỞI ĐỘNG FLASK BACKEND
 :: -------------------------------------------------------------------------------
@@ -59,39 +62,42 @@ echo.
 echo [3/4] Đang tạo đường link Online HTTPS qua Cloudflare Tunnel...
 set "CF_LOG=%TEMP%\cloudflared_evi.log"
 if exist "%CF_LOG%" del /f /q "%CF_LOG%" >nul 2>&1
-
 set "PUBLIC_URL="
 
-if exist "cloudflared.exe" (
-    start "EVI Cloudflare Tunnel" /min "%~dp0cloudflared.exe" tunnel --url http://127.0.0.1:5001 --logfile "%CF_LOG%"
-    
-    :: Đợi và trích xuất URL từ log
-    set "TUNNEL_WAIT=0"
-    :WAIT_TUNNEL
-    ping 127.0.0.1 -n 2 >nul
-    if exist "%CF_LOG%" (
-        for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -Command "(Get-Content -Path '%CF_LOG%' -ErrorAction SilentlyContinue | Select-String 'https://[a-zA-Z0-9-]+\.trycloudflare\.com').Matches.Value | Select-Object -First 1"`) do (
-            set "PUBLIC_URL=%%L"
-        )
-    )
-    if defined PUBLIC_URL goto TUNNEL_DONE
-    set /a TUNNEL_WAIT+=1
-    if %TUNNEL_WAIT% GEQ 15 goto TUNNEL_TIMEOUT
-    echo       -> Đang kết nối Cloudflare mạng toàn cầu... (%TUNNEL_WAIT%s)
-    goto WAIT_TUNNEL
-) else (
-    echo     -> [LƯU Ý] Chưa có cloudflared.exe. Bạn có thể chạy '1_CAI_DAT_SERVER_TU_DONG.bat' để tải tự động.
-    goto SKIP_TUNNEL
+if not exist "cloudflared.exe" goto SKIP_TUNNEL
+
+start "EVI Cloudflare Tunnel" /min "%~dp0cloudflared.exe" tunnel --url http://127.0.0.1:5001 --logfile "%CF_LOG%"
+
+:: Đợi và trích xuất URL từ log
+set "TUNNEL_WAIT=0"
+:WAIT_TUNNEL
+ping 127.0.0.1 -n 2 >nul
+if not exist "%CF_LOG%" goto TUNNEL_RETRY
+
+for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -Command "(Get-Content -Path '%CF_LOG%' -ErrorAction SilentlyContinue | Select-String 'https://[a-zA-Z0-9-]+\.trycloudflare\.com').Matches.Value | Select-Object -First 1"`) do (
+    set "PUBLIC_URL=%%L"
 )
 
+if defined PUBLIC_URL goto TUNNEL_DONE
+
+:TUNNEL_RETRY
+set /a TUNNEL_WAIT+=1
+if %TUNNEL_WAIT% GEQ 15 goto TUNNEL_TIMEOUT
+echo       -> Đang kết nối Cloudflare mạng toàn cầu... (%TUNNEL_WAIT%s)
+goto WAIT_TUNNEL
+
 :TUNNEL_TIMEOUT
-echo     -> Đang tiếp tục lấy link, bạn có thể kiểm tra file log: %CF_LOG%
+echo     -> Đang tiếp tục lấy link từ Cloudflare...
 goto TUNNEL_DONE
 
 :TUNNEL_DONE
 echo     -> Tạo link Cloudflare Tunnel thành công!
+goto GET_LAN_IP
 
 :SKIP_TUNNEL
+echo     -> [LƯU Ý] Chưa có cloudflared.exe. Bạn có thể chạy '1_CAI_DAT_SERVER_TU_DONG.bat' để tải tự động.
+
+:GET_LAN_IP
 :: -------------------------------------------------------------------------------
 :: 5. TÌM ĐỊA CHỈ IP MẠNG NỘI BỘ (LAN)
 :: -------------------------------------------------------------------------------
@@ -118,7 +124,7 @@ if defined PUBLIC_URL (
     echo      (Gửi link trên cho Giáo viên, Nhân viên CM hoặc mở trên Điện thoại)
 ) else (
     echo   🌐 3. ĐƯỜNG LINK ONLINE:
-    echo      Đang tạo kết nối ngầm... Bạn có thể xem trong cửa sổ Cloudflare Tunnel.
+    echo      Đang tạo kết nối ngầm... Bạn có thể xem trong file %CF_LOG%
 )
 echo.
 echo ===============================================================================
