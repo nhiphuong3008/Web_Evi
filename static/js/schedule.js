@@ -165,12 +165,11 @@ const ScheduleModule = {
             if (s.class_name.startsWith('Galax')) pillBg = 'background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe;';
             if (s.class_name.startsWith('Moon')) pillBg = 'background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc;';
 
-            const defaultDriveUrl = s.lesson_plan_url || "https://drive.google.com/drive/folders/1JBDNHJLPorVjqbEHfHJgObhP9wsEejTz?usp=sharing";
-
-            const lessonBtnLabel = s.current_buoi ? `Lesson ${s.current_buoi}` : 'Syllabus';
+            const isPinned = !!s.is_pinned;
+            const lessonBtnLabel = s.current_buoi ? (isPinned ? `📌 Lesson ${s.current_buoi}` : `Lesson ${s.current_buoi}`) : 'Syllabus';
             const cleanUnit = (s.current_unit || '').replace(/\s+/g, ' ').trim();
             const lessonTooltip = s.current_buoi 
-                ? `Lesson ${s.current_buoi}/${s.total_lessons || 72}${cleanUnit ? ' - ' + cleanUnit : ''}` 
+                ? `Lesson ${s.current_buoi}/${s.total_lessons || 72}${cleanUnit ? ' - ' + cleanUnit : ''}${isPinned ? ' (Đang ghim thủ công)' : ''}` 
                 : 'Bấm để xem chi tiết bài học giáo án';
 
             return `
@@ -179,8 +178,8 @@ const ScheduleModule = {
                 </td>
                 <td style="font-size: 11px; padding: 7px 8px; border-bottom: 1px solid #e9d5ff; max-width: 160px; vertical-align: middle;" title="${lessonTooltip}">
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <button class="btn btn-sm" onclick="ScheduleModule.openLessonLogModal('${s.class_name}');" style="padding: 3px 8px; font-size: 11px; background: #ffffff; border: 1.5px solid #c084fc; color: #6b21a8; font-weight: 800; border-radius: 6px; display: flex; align-items: center; gap: 4px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" title="${lessonTooltip}">
-                            📖 <span style="white-space: nowrap; font-weight: 800;">${lessonBtnLabel}</span>
+                        <button class="btn btn-sm" onclick="ScheduleModule.openLessonLogModal('${s.class_name}');" style="padding: 3px 8px; font-size: 11px; background: ${isPinned ? '#fef3c7' : '#ffffff'}; border: 1.5px solid ${isPinned ? '#f59e0b' : '#c084fc'}; color: ${isPinned ? '#b45309' : '#6b21a8'}; font-weight: 800; border-radius: 6px; display: flex; align-items: center; gap: 4px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" title="${lessonTooltip}">
+                            ${isPinned ? '📌' : '📖'} <span style="white-space: nowrap; font-weight: 800;">${lessonBtnLabel}</span>
                         </button>
                         <a href="${defaultDriveUrl}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; text-decoration: none; font-size: 14px; padding: 2px 4px;" title="Mở thư mục Giáo án TEMPLATE trên Google Drive">
                             📂
@@ -293,28 +292,38 @@ const ScheduleModule = {
                 return;
             }
 
-            const { class_name, materials, room, teacher, cm_staff, lessons, lesson_plan_url, total_lessons, detected_course } = json;
+            const { class_name, materials, room, teacher, cm_staff, lessons, lesson_plan_url, total_lessons, detected_course, pinned_lesson_num } = json;
             const driveUrl = lesson_plan_url || "https://drive.google.com/drive/folders/1JBDNHJLPorVjqbEHfHJgObhP9wsEejTz?usp=sharing";
 
             // Save class name & lessons in module memory for preview modal
             this.currentClassName = className;
             this.currentLessonsList = lessons;
+            this.currentPinnedLesson = pinned_lesson_num;
 
-            // Find focus lesson index: Today > Last Completed > First lesson
+            // Find focus lesson index: Pinned > Today > Last Completed > First lesson
             let targetIndex = -1;
             let targetReason = '';
 
-            // Search for Today lesson
-            targetIndex = lessons.findIndex(l => l.status_code === 'today');
-            if (targetIndex !== -1) {
-                targetReason = 'Hôm nay';
-            } else {
-                // Find most recently completed lesson
-                for (let i = lessons.length - 1; i >= 0; i--) {
-                    if (lessons[i].status_code === 'completed') {
-                        targetIndex = i;
-                        targetReason = 'Ngày học kết thúc gần nhất';
-                        break;
+            if (pinned_lesson_num) {
+                targetIndex = lessons.findIndex(l => l.buoi === pinned_lesson_num);
+                if (targetIndex !== -1) {
+                    targetReason = 'Đã ghim bài học hiện tại';
+                }
+            }
+
+            if (targetIndex === -1) {
+                // Search for Today lesson
+                targetIndex = lessons.findIndex(l => l.status_code === 'today');
+                if (targetIndex !== -1) {
+                    targetReason = 'Hôm nay';
+                } else {
+                    // Find most recently completed lesson
+                    for (let i = lessons.length - 1; i >= 0; i--) {
+                        if (lessons[i].status_code === 'completed') {
+                            targetIndex = i;
+                            targetReason = 'Ngày học kết thúc gần nhất';
+                            break;
+                        }
                     }
                 }
             }
@@ -334,12 +343,13 @@ const ScheduleModule = {
                 if (l.status_code === 'pending') statusBadge = 'badge-info';
 
                 const isTarget = (index === targetIndex);
+                const isPinnedThis = l.is_pinned || (pinned_lesson_num === l.buoi);
 
                 return `
-                    <tr id="lesson-row-${index}" data-target-scroll="${isTarget ? 'true' : ''}" style="${isTarget ? 'background: rgba(255, 126, 95, 0.15); font-weight: 700; border: 2px solid #ff7e5f;' : ''}">
+                    <tr id="lesson-row-${index}" data-target-scroll="${isTarget ? 'true' : ''}" style="${isTarget ? (isPinnedThis ? 'background: rgba(245, 158, 11, 0.15); font-weight: 700; border: 2px solid #f59e0b;' : 'background: rgba(255, 126, 95, 0.15); font-weight: 700; border: 2px solid #ff7e5f;') : ''}">
                         <td style="text-align: center; font-weight: 800; font-size: 13px; vertical-align: top; padding-top: 10px;">
-                            ${l.status_code === 'completed' ? '🟢 ' : (l.status_code === 'today' ? '👉 ' : '⚪ ')}${l.buoi}
-                            ${isTarget ? `<br><small style="color: #ff7e5f; font-size: 10px; font-weight: 800;">📍(${targetReason})</small>` : ''}
+                            ${isPinnedThis ? '📌 ' : (l.status_code === 'completed' ? '🟢 ' : (l.status_code === 'today' ? '👉 ' : '⚪ '))}${l.buoi}
+                            ${isTarget ? `<br><small style="color: ${isPinnedThis ? '#b45309' : '#ff7e5f'}; font-size: 10px; font-weight: 800;">📍(${targetReason})</small>` : ''}
                         </td>
                         <td style="font-weight: 700; color: #4338ca; font-size: 12px; vertical-align: top; padding-top: 10px;">${l.date}</td>
                         <td style="font-size: 12.5px; padding: 10px 12px;">
@@ -348,7 +358,7 @@ const ScheduleModule = {
                                 <span class="badge badge-info" style="font-size: 11px;">${AuthModule.escapeHtml(l.unit_name || '')} ${l.pages ? '(Trang ' + l.pages + ')' : ''}</span>
                             </div>
 
-                            <div style="background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; border-left: 4px solid #ff7e5f; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                            <div style="background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; border-left: 4px solid ${isPinnedThis ? '#f59e0b' : '#ff7e5f'}; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
                                 <div style="color: #0f172a; font-size: 12px; margin-bottom: 6px; line-height: 1.4;">
                                     <strong style="color: #0284c7; display: block; margin-bottom: 2px;">📚 Vocabulary (Từ vựng):</strong>
                                     ${AuthModule.escapeHtml(l.vocabulary || '—').replace(/\n/g, '<br>')}
@@ -373,9 +383,9 @@ const ScheduleModule = {
                                     📄 Thẻ Báo Cáo
                                 </button>
                                 <button class="btn btn-sm" onclick="ScheduleModule.toggleLessonDelay('${AuthModule.escapeHtml(class_name)}', ${l.buoi});" style="padding: 3px 8px; font-size: 11px; background: ${l.is_delayed ? '#ffe4e6' : '#fef3c7'}; color: ${l.is_delayed ? '#be123c' : '#b45309'}; border: 1px solid ${l.is_delayed ? '#f43f5e' : '#f59e0b'}; border-radius: 6px; font-weight: 700;" title="${l.is_delayed ? 'Hủy lùi lịch cho buổi này' : 'Bấm lùi ngày học của buổi này sang buổi kế tiếp nếu bị nghỉ học/hủy buổi'}">
-                                    ${l.is_delayed ? '↩️ Hủy Lùi' : '⏩ Lùi Lịch'}
+                                    ${l.is_delayed ? '↩️ Hủy Lùi' : '⏪ Lùi Lịch'}
                                 </button>
-                                <button class="btn btn-sm" onclick="ScheduleModule.jumpToLesson(${index}, ${l.buoi});" style="padding: 3px 8px; font-size: 11px; background: #e0e7ff; color: #4338ca; border: 1px solid #a5b4fc; border-radius: 6px; font-weight: 700;" title="Nhảy tiêu điểm tới bài học này">
+                                <button class="btn btn-sm" onclick="ScheduleModule.advanceLessonProgress('${AuthModule.escapeHtml(class_name)}', ${l.buoi});" style="padding: 3px 8px; font-size: 11px; background: #e0e7ff; color: #4338ca; border: 1px solid #a5b4fc; border-radius: 6px; font-weight: 700;" title="Bấm để nhảy bài (đẩy ngày học của bài này và các bài sau lên sớm 1 buổi nếu học nhanh hơn hoặc bỏ qua bài trước)">
                                     ⏩ Nhảy Bài
                                 </button>
                             </div>
@@ -413,9 +423,14 @@ const ScheduleModule = {
                     <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                         <span>📝 CHI TIẾT NỘI DUNG BÀI HỌC (SYLLABUS)</span>
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <span id="target-location-badge" style="background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; box-shadow: 0 2px 6px rgba(255, 126, 95, 0.2);">
-                                📌 Tự động định vị: Buổi ${targetLesson ? targetLesson.buoi : ''} (${targetReason})
+                            <span id="target-location-badge" style="background: ${pinned_lesson_num ? '#fef3c7' : '#ffedd5'}; color: ${pinned_lesson_num ? '#b45309' : '#c2410c'}; border: 1px solid ${pinned_lesson_num ? '#f59e0b' : '#fdba74'}; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; box-shadow: 0 2px 6px rgba(255, 126, 95, 0.2);">
+                                ${pinned_lesson_num ? '📌 Đã ghim bài học:' : '📍 Tự động định vị:'} Buổi ${targetLesson ? targetLesson.buoi : ''} (${targetReason})
                             </span>
+                            ${pinned_lesson_num ? `
+                                <button class="btn btn-sm" onclick="ScheduleModule.jumpToLessonProgress('${AuthModule.escapeHtml(class_name)}', 0);" style="padding: 3px 10px; font-size: 11.5px; background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; border-radius: 20px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Hủy ghim và đưa lớp về chế độ tự động tính theo ngày">
+                                    🔄 Hủy Ghim (Về Tự Động)
+                                </button>
+                            ` : ''}
                         </div>
                     </h4>
 
@@ -651,6 +666,38 @@ const ScheduleModule = {
                 this.openLessonLogModal(className);
             } else {
                 alert('Lỗi lùi lịch: ' + (res.error || res.message || 'Không thể cập nhật'));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    },
+
+    /**
+     * Nhảy Bài (Đẩy sớm tiến độ bài học lên 1 buổi thực tế)
+     */
+    async advanceLessonProgress(className, buoi) {
+        if (!confirm(`Bạn có chắc chắn muốn nhảy bài, đẩy Buổi ${buoi} và toàn bộ các buổi tiếp theo của Lớp ${className} lên sớm 1 buổi học trong lịch thực tế không?`)) {
+            return;
+        }
+        try {
+            const res = await API.post('/schedule/advance-lesson', { class_name: className, lesson_num: buoi });
+
+            if (res && res.success) {
+                if (typeof App !== 'undefined' && App.showToast) {
+                    App.showToast(`✅ Đã nhảy bài, đẩy tiến độ Buổi ${buoi} lên sớm 1 buổi thành công!`, 'success');
+                } else {
+                    alert(`✅ Đã nhảy bài, đẩy tiến độ Buổi ${buoi} lên sớm 1 buổi thành công!`);
+                }
+                // Re-open modal with updated log
+                await this.openLessonLogModal(className);
+
+                // Refresh main schedule matrix in background
+                const container = document.getElementById('schedule');
+                if (container && typeof this.renderPage === 'function') {
+                    this.renderPage(container);
+                }
+            } else {
+                alert('Lỗi nhảy bài: ' + (res.error || res.message || 'Không thể cập nhật'));
             }
         } catch (e) {
             alert('Lỗi kết nối: ' + e.message);
@@ -1049,6 +1096,47 @@ const ScheduleModule = {
             }
         } catch (e) {
             alert('Lỗi kết nối server: ' + e.message);
+        }
+    },
+
+    /**
+     * Nhảy Bài & Ghim / Hủy ghim bài học hiện tại cho lớp (Option 2)
+     */
+    async jumpToLessonProgress(className, buoiNum) {
+        const isReset = (buoiNum === 0 || !buoiNum);
+        const confirmMsg = isReset
+            ? `Bạn có chắc chắn muốn hủy ghim bài học và đưa Lớp ${className} trở về chế độ tự động tính theo ngày không?`
+            : `Bạn có chắc chắn muốn nhảy bài và ghim Buổi ${buoiNum} làm bài học hiện tại cho Lớp ${className} trên Thời khóa biểu & Dashboard không?`;
+
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            const res = await API.post('/schedule/jump-lesson', {
+                class_name: className,
+                lesson_num: isReset ? null : buoiNum
+            });
+
+            if (res && res.success) {
+                const msg = (res.jump_res && res.jump_res.message) || (isReset ? '✅ Đã hủy ghim bài học thành công!' : `✅ Đã ghim Buổi ${buoiNum} làm bài học hiện tại thành công!`);
+                if (typeof App !== 'undefined' && App.showToast) {
+                    App.showToast(msg, 'success');
+                } else {
+                    alert(msg);
+                }
+
+                // Re-open/refresh modal with updated log
+                await this.openLessonLogModal(className);
+
+                // Refresh main schedule matrix in background
+                const container = document.getElementById('schedule');
+                if (container && typeof this.renderPage === 'function') {
+                    this.renderPage(container);
+                }
+            } else {
+                alert('Lỗi nhảy bài: ' + (res.error || res.message || 'Không thể cập nhật'));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
         }
     },
 

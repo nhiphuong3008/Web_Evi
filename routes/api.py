@@ -1145,6 +1145,54 @@ def delay_schedule_lesson():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@api_bp.route('/schedule/jump-lesson', methods=['POST'])
+def jump_schedule_lesson():
+    """API Ghim / Hủy ghim bài học hiện tại (Nhảy Bài - Set as Current Lesson) cho 1 lớp học."""
+    try:
+        data = request.get_json() or {}
+        class_name = data.get('class_name', '').strip()
+        lesson_num = data.get('lesson_num')
+        if not class_name:
+            return jsonify({'success': False, 'error': 'Vui lòng cung cấp class_name'}), 400
+
+        from services.db_service import set_class_current_lesson_db, get_class_lesson_log_db
+        jump_res = set_class_current_lesson_db(class_name, int(lesson_num) if (lesson_num is not None and str(lesson_num).isdigit()) else None)
+        if not jump_res.get('success'):
+            return jsonify(jump_res), 500
+
+        # Refetch updated class lesson log
+        updated_log = get_class_lesson_log_db(class_name)
+        updated_log['jump_res'] = jump_res
+        return jsonify(updated_log)
+    except Exception as e:
+        logger.error(f"Error in jump_schedule_lesson: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_bp.route('/schedule/advance-lesson', methods=['POST'])
+def advance_schedule_lesson():
+    """API Nhảy Bài (Đẩy sớm tiến độ bài học lên 1 buổi) cho 1 lớp học."""
+    try:
+        data = request.get_json() or {}
+        class_name = data.get('class_name', '').strip()
+        lesson_num = data.get('lesson_num')
+        if not class_name or not lesson_num:
+            return jsonify({'success': False, 'error': 'Vui lòng cung cấp class_name và lesson_num'}), 400
+
+        from services.db_service import advance_class_lesson_db, get_class_lesson_log_db
+        adv_res = advance_class_lesson_db(class_name, int(lesson_num))
+        if not adv_res.get('success'):
+            return jsonify(adv_res), 500
+
+        # Refetch updated class lesson log
+        updated_log = get_class_lesson_log_db(class_name)
+        updated_log['advance_res'] = adv_res
+        return jsonify(updated_log)
+    except Exception as e:
+        logger.error(f"Error in advance_schedule_lesson: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @api_bp.route('/schedule/holiday-shift/preview', methods=['POST'])
 def preview_holiday_shift():
     """API Tính trước tác động của đợt nghỉ lễ / lùi lịch."""

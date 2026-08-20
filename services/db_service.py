@@ -1413,18 +1413,28 @@ def get_schedule_matrix_db(cm_staff_name=None):
             try:
                 log_res = get_class_lesson_log_db(cname)
                 lessons = log_res.get('lessons', [])
+                pinned_num = log_res.get('pinned_lesson_num')
                 current_buoi = None
                 current_unit = None
                 current_title = None
+                is_pinned = False
                 if lessons:
-                    today_lessons = [l for l in lessons if l.get('status_code') == 'today']
-                    completed = [l for l in lessons if l.get('status_code') == 'completed']
-                    if today_lessons:
-                        curr_item = today_lessons[-1]
-                    elif completed:
-                        curr_item = completed[-1]
+                    if pinned_num:
+                        pinned_matches = [l for l in lessons if l.get('buoi') == pinned_num]
+                        if pinned_matches:
+                            curr_item = pinned_matches[0]
+                            is_pinned = True
+                        else:
+                            curr_item = lessons[0]
                     else:
-                        curr_item = lessons[0]
+                        today_lessons = [l for l in lessons if l.get('status_code') == 'today']
+                        completed = [l for l in lessons if l.get('status_code') == 'completed']
+                        if today_lessons:
+                            curr_item = today_lessons[-1]
+                        elif completed:
+                            curr_item = completed[-1]
+                        else:
+                            curr_item = lessons[0]
                     
                     current_buoi = curr_item.get('buoi')
                     current_unit = curr_item.get('unit_name')
@@ -1434,17 +1444,19 @@ def get_schedule_matrix_db(cm_staff_name=None):
                     'current_buoi': current_buoi,
                     'current_unit': current_unit,
                     'current_title': current_title,
+                    'is_pinned': is_pinned,
                     'total_lessons': len(lessons)
                 }
             except Exception as _e:
                 logger.error(f"Error getting lesson info for {cname}: {_e}")
-                lesson_info_map[cname] = {'current_buoi': None, 'total_lessons': 0}
+                lesson_info_map[cname] = {'current_buoi': None, 'is_pinned': False, 'total_lessons': 0}
 
         for s in s_dicts:
             c_info = lesson_info_map.get(s['class_name'], {})
             s['current_buoi'] = c_info.get('current_buoi')
             s['current_unit'] = c_info.get('current_unit')
             s['current_title'] = c_info.get('current_title')
+            s['is_pinned'] = c_info.get('is_pinned', False)
             s['total_lessons'] = c_info.get('total_lessons')
 
         days_order = [
@@ -1756,6 +1768,116 @@ def toggle_delay_class_lesson_db(class_name, lesson_num):
         return {'success': False, 'message': str(e)}
 
 
+def advance_class_lesson_db(class_name, lesson_num):
+    """
+    Nhảy Bài / Đẩy sớm tiến độ bài học:
+    Đẩy Buổi lesson_num và toàn bộ các bài phía sau lên sớm 1 buổi học trong lịch học thực tế.
+    """
+    session = db_session()
+    try:
+        clean_cname = class_name.strip()
+        schedules = session.query(ClassSchedule).filter(ClassSchedule.class_name.ilike(f"%{clean_cname}%")).all()
+        matched_syllabuses = session.query(LessonSyllabus).filter(
+            LessonSyllabus.class_name.ilike(f"%{clean_cname}%")
+        ).order_by(LessonSyllabus.lesson_num.asc()).all()
+
+        if not matched_syllabuses:
+            return {'success': False, 'error': f'Không tìm thấy giáo án riêng cho lớp {clean_cname}'}
+
+        target_idx = -1
+        for idx, s in enumerate(matched_syllabuses):
+            if (s.lesson_num or idx + 1) == int(lesson_num):
+                target_idx = idx
+                break
+
+        if target_idx <= 0:
+            return {'success': False, 'error': f'Không thể đẩy sớm bài học đầu tiên (Buổi 1)'}
+
+        # The date that session (target_idx - 1) currently has
+        lesson_dates, _ = calculate_real_class_lesson_dates(schedules, clean_cname, matched_syllabuses, session)
+        
+        # Study weekdays
+        study_weekdays = set()
+        for s in schedules:
+            if s.day:
+                day_str = s.day.lower()
+                for k, v in [('mon', 0), ('tue', 1), ('wed', 2), ('thu', 3), ('fri', 4), ('sat', 5), ('sun', 6)]:
+                    if k in day_str:
+                        study_weekdays.add(v)
+        if not study_weekdays:
+            study_weekdays = {0, 3}
+        sorted_weekdays = sorted(list(study_weekdays))
+
+        # The new anchor date for target lesson is the date of (target_idx - 1)
+        anchor_d = lesson_dates[target_idx - 1]
+
+        # Shift target_idx and forward
+        curr_d = anchor_d
+        for idx in range(target_idx, len(matched_syllabuses)):
+            matched_syllabuses[idx].official_date = curr_d.strftime('%Y-%m-%d')
+            curr_d = get_next_study_date(curr_d, sorted_weekdays)
+
+        # Shift backward from target_idx - 1
+        prev_curr_d = anchor_d
+        for idx in range(target_idx - 1, -1, -1):
+            prev_curr_d = get_prev_study_date(prev_curr_d, sorted_weekdays)
+            matched_syllabuses[idx].official_date = prev_curr_d.strftime('%Y-%m-%d')
+
+        session.commit()
+        session.close()
+        return {'success': True, 'class_name': clean_cname, 'lesson_num': int(lesson_num), 'message': f'Đã đẩy tiến độ bài học của lớp {clean_cname} từ Buổi {lesson_num} lên sớm 1 buổi thành công!'}
+    except Exception as e:
+        session.rollback()
+        session.close()
+        return {'success': False, 'message': str(e)}
+
+
+def set_class_current_lesson_db(class_name, lesson_num=None):
+    """
+    Ghim (Set) hoặc Hủy ghim bài học hiện tại (Nhảy Bài) cho 1 lớp học.
+    - Nếu lesson_num được truyền và khác bài đang ghim: Ghim bài này làm bài hiện tại.
+    - Nếu lesson_num trùng bài đang ghim hoặc None/0: Hủy ghim, chuyển về tự động tính theo ngày.
+    """
+    from database.models import ClassScheduleAdjustment
+    session = db_session()
+    try:
+        clean_cname = class_name.strip()
+        adj = session.query(ClassScheduleAdjustment).filter(
+            ClassScheduleAdjustment.class_name.ilike(f"%{clean_cname}%")
+        ).first()
+
+        target_num = int(lesson_num) if (lesson_num is not None and str(lesson_num).isdigit() and int(lesson_num) > 0) else None
+
+        if not adj:
+            adj = ClassScheduleAdjustment(
+                class_name=clean_cname,
+                delayed_lessons='[]',
+                current_lesson_num=target_num,
+                note=f"Tự động tạo khi ghim bài {target_num}" if target_num else "Tự động tạo"
+            )
+            session.add(adj)
+            mode = 'pinned' if target_num else 'auto'
+            msg = f"Đã ghim Buổi {target_num} làm bài học hiện tại cho lớp {clean_cname}!" if target_num else f"Đã chuyển lớp {clean_cname} về chế độ tự động tính theo ngày."
+        else:
+            if target_num is None or adj.current_lesson_num == target_num:
+                # Toggle off -> return to auto
+                adj.current_lesson_num = None
+                mode = 'auto'
+                msg = f"Đã hủy ghim cho lớp {clean_cname}, chuyển về chế độ tự động tính theo ngày."
+            else:
+                adj.current_lesson_num = target_num
+                mode = 'pinned'
+                msg = f"Đã ghim Buổi {target_num} làm bài học hiện tại cho lớp {clean_cname}!"
+
+        session.commit()
+        session.close()
+        return {'success': True, 'class_name': clean_cname, 'mode': mode, 'pinned_lesson_num': target_num if mode == 'pinned' else None, 'message': msg}
+    except Exception as e:
+        session.rollback()
+        session.close()
+        return {'success': False, 'message': str(e)}
+
+
 def get_class_lesson_log_db(class_name):
     """
     Lấy Nhật ký bài học theo buổi của 1 lớp học (Pop-up Nhật ký bài học).
@@ -1780,6 +1902,13 @@ def get_class_lesson_log_db(class_name):
             main_cm = schedules[0].cm_staff or main_cm
             if schedules[0].lesson_plan_url:
                 drive_url = schedules[0].lesson_plan_url
+
+        # Check if class has an adjustment for pinned lesson
+        from database.models import ClassScheduleAdjustment
+        adj = session.query(ClassScheduleAdjustment).filter(
+            ClassScheduleAdjustment.class_name.ilike(f"%{clean_cname}%")
+        ).first()
+        pinned_lesson = adj.current_lesson_num if (adj and adj.current_lesson_num) else None
 
         # Detect correct course syllabus name
         detected_course = detect_course_name_from_class(clean_cname, main_mat)
@@ -1817,16 +1946,28 @@ def get_class_lesson_log_db(class_name):
                 date_str = curr_date.strftime('%d/%m')
 
                 is_delayed = buoi in delayed_set
+                is_pinned = (pinned_lesson is not None and buoi == pinned_lesson)
 
-                if curr_date < today:
-                    status_code = 'completed'
-                    status_label = '✅ Đã hoàn thành'
-                elif curr_date == today:
-                    status_code = 'today'
-                    status_label = '🔄 Đang học (Hôm nay)'
+                if pinned_lesson is not None:
+                    if buoi < pinned_lesson:
+                        status_code = 'completed'
+                        status_label = '✅ Đã hoàn thành'
+                    elif buoi == pinned_lesson:
+                        status_code = 'today'
+                        status_label = '📌 Đang học (Đã ghim)'
+                    else:
+                        status_code = 'pending'
+                        status_label = '⏳ Chưa dạy'
                 else:
-                    status_code = 'pending'
-                    status_label = '⏳ Chưa dạy'
+                    if curr_date < today:
+                        status_code = 'completed'
+                        status_label = '✅ Đã hoàn thành'
+                    elif curr_date == today:
+                        status_code = 'today'
+                        status_label = '🔄 Đang học (Hôm nay)'
+                    else:
+                        status_code = 'pending'
+                        status_label = '⏳ Chưa dạy'
 
                 if is_delayed:
                     status_label += ' (⚠️ Đã lùi lịch)'
@@ -1884,6 +2025,7 @@ def get_class_lesson_log_db(class_name):
                     'pages': syl.pages or '',
                     'date': date_str,
                     'is_delayed': is_delayed,
+                    'is_pinned': is_pinned,
                     'vocabulary': syl.vocabulary or '—',
                     'grammar': syl.grammar or '—',
                     'lesson_target': syl.lesson_target or '',
@@ -1897,15 +2039,28 @@ def get_class_lesson_log_db(class_name):
                 idx = buoi - 1
                 curr_date = lesson_dates[idx] if idx < len(lesson_dates) else today
                 date_str = curr_date.strftime('%d/%m')
-                if curr_date < today:
-                    status_code = 'completed'
-                    status_label = '✅ Đã hoàn thành'
-                elif curr_date == today:
-                    status_code = 'today'
-                    status_label = '🔄 Đang học (Hôm nay)'
+                is_pinned = (pinned_lesson is not None and buoi == pinned_lesson)
+
+                if pinned_lesson is not None:
+                    if buoi < pinned_lesson:
+                        status_code = 'completed'
+                        status_label = '✅ Đã hoàn thành'
+                    elif buoi == pinned_lesson:
+                        status_code = 'today'
+                        status_label = '📌 Đang học (Đã ghim)'
+                    else:
+                        status_code = 'pending'
+                        status_label = '⏳ Chưa dạy'
                 else:
-                    status_code = 'pending'
-                    status_label = '⏳ Chưa dạy'
+                    if curr_date < today:
+                        status_code = 'completed'
+                        status_label = '✅ Đã hoàn thành'
+                    elif curr_date == today:
+                        status_code = 'today'
+                        status_label = '🔄 Đang học (Hôm nay)'
+                    else:
+                        status_code = 'pending'
+                        status_label = '⏳ Chưa dạy'
 
                 lesson_entries.append({
                     'buoi': buoi,
@@ -1913,6 +2068,8 @@ def get_class_lesson_log_db(class_name):
                     'unit_name': f"UNIT {buoi}",
                     'pages': '—',
                     'date': date_str,
+                    'is_delayed': False,
+                    'is_pinned': is_pinned,
                     'vocabulary': 'Đang cập nhật giáo án chuẩn từ Phòng Đào Tạo',
                     'grammar': 'Đang cập nhật giáo án chuẩn từ Phòng Đào Tạo',
                     'lesson_target': 'Đang cập nhật mục tiêu bài học',
@@ -1931,6 +2088,7 @@ def get_class_lesson_log_db(class_name):
             'cm_staff': main_cm,
             'lesson_plan_url': drive_url,
             'total_lessons': len(lesson_entries),
+            'pinned_lesson_num': pinned_lesson,
             'lessons': lesson_entries
         }
     except Exception as e:

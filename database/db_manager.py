@@ -72,6 +72,21 @@ def seed_initial_users():
         session.close()
 
 
+def auto_migrate_schema():
+    """Tự động kiểm tra và thêm các cột mới vào CSDL nếu chưa có."""
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            # Check class_schedule_adjustments for current_lesson_num
+            res = conn.execute(text("PRAGMA table_info(class_schedule_adjustments)"))
+            cols = [row[1] for row in res.fetchall()]
+            if 'current_lesson_num' not in cols:
+                conn.execute(text("ALTER TABLE class_schedule_adjustments ADD COLUMN current_lesson_num INTEGER"))
+                logger.info("✅ Đã tự động thêm cột current_lesson_num vào bảng class_schedule_adjustments")
+    except Exception as e:
+        logger.warning(f"Lưu ý khi tự động migrate schema: {e}")
+
+
 def init_db():
     """
     Tạo tất cả các bảng trong Database nếu chưa tồn tại.
@@ -79,6 +94,7 @@ def init_db():
     try:
         Base.metadata.create_all(bind=engine)
         logger.info(f"✅ Đã kết nối và khởi tạo CSDL thành công: {DATABASE_URL}")
+        auto_migrate_schema()
         seed_initial_users()
         return True
     except Exception as e:

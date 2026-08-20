@@ -1,5 +1,17 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.1.2] - 2026-08-20
+### ⏩ Tính Năng Nhảy Bài (Đẩy Sớm Tiến Độ Lịch Học) & Căn Chỉnh Tiến Độ Thực Tế Lớp Moon 5.1
+- **Căn Chỉnh Tiến Độ Thực Tế Lớp Moon 5.1 (`database/evi_center.db`)**:
+  - Cập nhật chuẩn xác ngày học thực tế của lớp **Moon 5.1**: **Buổi 47** học vào ngày **19/08** (`✅ Đã hoàn thành`), **Buổi 48** học vào ngày **22/08** (`⏳ Chưa dạy`).
+  - Đồng bộ số bài học hiện tại trên Thời khóa biểu ma trận 7 ngày sang **`Lesson 47`**.
+- **Tính Năng "⏩ Nhảy Bài" Đẩy Sớm Tiến Độ Lịch Học (`services/db_service.py`, `routes/api.py`, `static/js/schedule.js`)**:
+  - Xây dựng hàm `advance_class_lesson_db(class_name, lesson_num)` và API `POST /api/schedule/advance-lesson`.
+  - Khi lớp học nhanh hơn hoặc bỏ qua bài, người dùng bấm nút **`⏩ Nhảy Bài`** tại Buổi X: Hệ thống tự động đẩy ngày học từ Buổi X và toàn bộ các buổi phía sau lên sớm 1 buổi học trong lịch thực tế (lưu trực tiếp vào CSDL SQLite).
+  - Tích hợp đối trọng hoàn hảo với nút **`⏪ Lùi Lịch`** (lùi ngày học khi nghỉ học).
+- **Cập Nhật Cache Buster Phiên Bản v5.1.2 (`static/index.html`)**:
+  - Gắn `?v=5.1.2` vào toàn bộ script frontend.
+
 ## [v5.1.1] - 2026-08-20
 ### 🐛 Sửa Lỗi Nút Lesson Không Mở Được Nhiều Lần & Khắc Phục Triệt Để Quản Lý Pop-up
 - **Sửa Lỗi Pop-up Bị Khóa Sau Khi Đóng (`static/js/schedule.js`, `static/js/dashboard.js`)**:

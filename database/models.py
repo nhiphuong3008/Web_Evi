@@ -772,7 +772,7 @@ class KpiMonthlyReport(Base):
 
 class ClassScheduleAdjustment(Base):
     """
-    Bảng Lưu Cấu Hình Ngày Học Chính Thức & Điều Chỉnh Lùi Lịch Cho Từng Lớp
+    Bảng Lưu Cấu Hình Ngày Học Chính Thức, Lùi Lịch & Ghim Bài Học Hiện Tại Cho Từng Lớp
     """
     __tablename__ = 'class_schedule_adjustments'
 
@@ -780,6 +780,7 @@ class ClassScheduleAdjustment(Base):
     class_name = Column(String(100), nullable=False, unique=True, index=True) # E.g. 'Galax 1.4', 'Sun 2.4'...
     start_date = Column(String(50), nullable=True)                            # YYYY-MM-DD (e.g. '2026-07-21')
     delayed_lessons = Column(Text, nullable=True, default='[]')                # JSON list of lesson numbers delayed e.g. [5, 12]
+    current_lesson_num = Column(Integer, nullable=True)                       # Lesson number pinned manually as current active lesson
     note = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -794,6 +795,7 @@ class ClassScheduleAdjustment(Base):
             'class_name': self.class_name,
             'start_date': self.start_date or '',
             'delayed_lessons': del_list,
+            'current_lesson_num': self.current_lesson_num,
             'note': self.note or ''
         }
 
