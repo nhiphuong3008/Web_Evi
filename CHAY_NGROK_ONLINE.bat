@@ -12,6 +12,8 @@ cd /d "%~dp0"
 :: 1. Ngoai le Windows Defender de khong bi chan ngrok
 echo [1/3] Cau hinh an toan Windows Defender cho thu muc...
 powershell -Command "Add-MpPreference -ExclusionPath '%~dp0' -ErrorAction SilentlyContinue" >nul 2>&1
+powershell -Command "Add-MpPreference -ExclusionPath 'D:\Vicare_web' -ErrorAction SilentlyContinue" >nul 2>&1
+powershell -Command "Add-MpPreference -ExclusionPath 'C:\Vicare_web' -ErrorAction SilentlyContinue" >nul 2>&1
 
 :: 2. Kiem tra va tai ngrok.exe
 if not exist "ngrok.exe" (

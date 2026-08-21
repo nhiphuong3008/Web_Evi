@@ -1,5 +1,5 @@
 @echo off
-title [EVI] KIEM TRA TOAN DIEN HE THONG & MOI TRUONG SERVER
+title [EVI] KIEM TRA TOAN DIEN HE THONG VA MOI TRUONG SERVER
 color 0E
 
 echo ===============================================================================

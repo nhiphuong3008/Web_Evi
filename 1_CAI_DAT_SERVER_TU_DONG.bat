@@ -3,7 +3,7 @@ title [EVI] CAI DAT SERVER TU DONG 100%%
 color 0B
 
 echo ===============================================================================
-echo        🚀 TU DONG CAI DAT MOI TRUONG SERVER CHO EVI DASHBOARD
+echo        TU DONG CAI DAT MOI TRUONG SERVER CHO EVI DASHBOARD
 echo ===============================================================================
 echo.
 echo   Script nay se tu dong thiet lap toan bo may tinh thanh Server:
@@ -19,10 +19,11 @@ echo.
 cd /d "%~dp0"
 
 :: -------------------------------------------------------------------------------
-:: BUOC 0: NGOAI LE WINDOWS DEFENDER
+:: BUOC 0: NGOAI LE WINDOWS DEFENDER CHO THU MUC HIEN TAI VA O D
 :: -------------------------------------------------------------------------------
 echo [0/5] Thiet lap an toan Windows Defender cho thu muc...
 powershell -Command "Add-MpPreference -ExclusionPath '%~dp0' -ErrorAction SilentlyContinue" >nul 2>&1
+powershell -Command "Add-MpPreference -ExclusionPath 'D:\Vicare_web' -ErrorAction SilentlyContinue" >nul 2>&1
 powershell -Command "Add-MpPreference -ExclusionPath 'C:\Vicare_web' -ErrorAction SilentlyContinue" >nul 2>&1
 
 :: -------------------------------------------------------------------------------
@@ -121,7 +122,7 @@ if exist "venv\Scripts\pip.exe" (
 echo.
 
 :: -------------------------------------------------------------------------------
-:: BUOC 4: TAI VA THIET LAP CONG CU TUNNEL (CLOUDFLARE & NGROK)
+:: BUOC 4: TAI VA THIET LAP CONG CU TUNNEL (CLOUDFLARE VA NGROK)
 :: -------------------------------------------------------------------------------
 echo [4/5] Thiet lap cong cu Online Tunnel 24/7...
 
@@ -159,7 +160,7 @@ netsh advfirewall firewall add rule name="EVI_Dashboard_Port_5001" dir=in action
 echo.
 echo ===============================================================================
 color 0A
-echo   🎉 CAI DAT SERVER HOAN TAT 100%% THANH CONG!
+echo   CAI DAT SERVER HOAN TAT 100%% THANH CONG!
 echo ===============================================================================
 echo.
 echo   Moi truong may tinh da san sang de tro thanh Server chinh thuc.

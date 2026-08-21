@@ -91,22 +91,22 @@ for /f "usebackq tokens=*" %%I in (`powershell -NoProfile -Command "(Get-NetIPAd
 
 echo.
 echo ===============================================================================
-echo   🎉 HE THONG EVI DASHBOARD DA SAN SANG HOAT DONG 24/7!
+echo   HE THONG EVI DASHBOARD DA SAN SANG HOAT DONG 24/7!
 echo ===============================================================================
 echo.
-echo   🌐 1. DUONG LINK NGROK CO DINH (TRUY CAP TU XA MOI NOI 24/7):
-echo      👉 https://hardy-porthole-wildland.ngrok-free.dev
+echo   [1] DUONG LINK NGROK CO DINH (TRUY CAP TU XA MOI NOI 24/7):
+echo       👉 https://hardy-porthole-wildland.ngrok-free.dev
 echo.
 if defined CF_URL (
-    echo   🛡️ 2. DUONG LINK ONLINE DU PHONG (CLOUDFLARE):
-    echo      👉 %CF_URL%
+    echo   [2] DUONG LINK ONLINE DU PHONG (CLOUDFLARE):
+    echo       👉 %CF_URL%
     echo.
 )
-echo   📶 3. TRUY CAP CUNG MANG WI-FI LAN:
-echo      👉 http://%LAN_IP%:5001
+echo   [3] TRUY CAP CUNG MANG WI-FI LAN:
+echo       👉 http://%LAN_IP%:5001
 echo.
-echo   💻 4. TRUY CAP TRUC TIEP TREN MAY SERVER NAY:
-echo      👉 http://127.0.0.1:5001
+echo   [4] TRUY CAP TRUC TIEP TREN MAY SERVER NAY:
+echo       👉 http://127.0.0.1:5001
 echo.
 echo ===============================================================================
 echo   [LUU Y QUAN TRONG]:
