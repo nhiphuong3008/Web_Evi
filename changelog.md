@@ -1,5 +1,19 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.3.1] - 2026-08-21
+### 🚀 Hoàn Thiện Bộ Cài Đặt & Vận Hành Server Tự Động 100% Cho Máy Windows Mới
+- **Đóng Gói File All-in-One Setup & Run (`CAI_DAT_VA_CHAY_TAT_CA.bat`)**:
+  - Tự động kiểm tra / tải / cài đặt Python 3.12 từ python.org với `start /wait` đảm bảo hoàn tất 100%.
+  - Tự động tạo môi trường ảo `venv` và nạp toàn bộ thư viện cần thiết (`Flask`, `SQLAlchemy`, `openpyxl`...).
+  - Tự động cấu hình Ngrok Domain cố định (`hardy-porthole-wildland.ngrok-free.dev`) và Cloudflare Tunnel.
+  - Tự động mở cổng Windows Firewall 5001 và khởi chạy hệ thống 24/7.
+- **Rà Soát Toàn Diện Môi Trường Server (`KIEM_TRA_MOI_TRUONG.bat`)**:
+  - Kiểm tra 6 hạng mục: Python hệ thống, venv, packages, SQLite CSDL (`evi_center.db`), công cụ Tunnel, và cổng Server 5001.
+  - Sửa lỗi cú pháp CMD batch parser (loại bỏ xung đột ký tự `&` và ngoặc đơn `()`), thêm lệnh `pause` giữ nguyên màn hình chẩn đoán.
+- **Tối Ưu Khởi Động Vận Hành (`2_CHAY_SERVER_VA_LINK_ONLINE.bat`)**:
+  - Tự động phát hiện venv và khởi chạy Flask Backend song song với Tunnel.
+  - Hiển thị trực quan 4 đường link: Online Tunnel 24/7, Ngrok cố định, Wi-Fi LAN và Localhost.
+
 ## [v5.3.0] - 2026-08-20
 ### 🚀 Chính Thức Go-Live Server Độc Lập 100% CSDL SQLite (Ngắt Kết Nối Google Sheets & PythonAnywhere)
 - **Hợp Nhất Toàn Bộ Dữ Liệu PythonAnywhere & Google Sheets Lần Cuối (`database/evi_center.db`)**:
