@@ -1,50 +1,52 @@
 @echo off
 chcp 65001 >nul
-title [EVI] Đang Chạy Server & Mở Đường Link Online 24/7
+title [EVI] Dang Chay Server & Mo Duong Link Online 24/7
 color 0A
 
 echo ===============================================================================
-echo                🌟 KHỞI CHẠY EVI DASHBOARD SERVER 24/7
+echo                🌟 KHOI CHAY EVI DASHBOARD SERVER 24/7
 echo ===============================================================================
 echo.
 
 cd /d "%~dp0"
 
-:: Chuẩn hóa cấu hình Port 5001 trong .env nếu có
-if exist ".env" (
-    powershell -NoProfile -Command "(Get-Content .env) -replace 'FLASK_PORT=5000', 'FLASK_PORT=5001' | Set-Content .env"
+:: -------------------------------------------------------------------------------
+:: 1. KIEM TRA MOI TRUONG PYTHON VENV (TU DONG CAI DAT NEU CHUA CO)
+:: -------------------------------------------------------------------------------
+if not exist "venv\Scripts\python.exe" (
+    echo [THONG BAO] Chua tim thay moi truong Python venv!
+    echo            Dang tu dong goi [1_CAI_DAT_SERVER_TU_DONG.bat] de thiet lap tu A-Z...
+    echo.
+    call "%~dp01_CAI_DAT_SERVER_TU_DONG.bat"
+    echo.
+)
+
+set "PY_CMD="
+if exist "venv\Scripts\python.exe" (
+    set "PY_CMD=venv\Scripts\python.exe"
+) else (
+    if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
+        set "PY_CMD=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+    ) else (
+        set "PY_CMD=python"
+    )
 )
 
 :: -------------------------------------------------------------------------------
-:: 1. TẮT CÁC TIẾN TRÌNH CŨ
+:: 2. TAT CAC TIEN TRINH CU
 :: -------------------------------------------------------------------------------
-echo [1/4] Đang dọn dẹp các tiến trình cũ (nếu có)...
+echo [1/4] Dang don dep cac tien trinh cu (neu co)...
 powershell -Command "Get-CimInstance Win32_Process -Filter 'Name = ''python.exe'' AND CommandLine LIKE ''%%app.py%%''' | Remove-CimInstance" >nul 2>&1
 taskkill /f /im ngrok.exe >nul 2>&1
 taskkill /f /im cloudflared.exe >nul 2>&1
 
 :: -------------------------------------------------------------------------------
-:: 2. XÁC ĐỊNH PYTHON VENV
+:: 3. KHOI DONG FLASK BACKEND
 :: -------------------------------------------------------------------------------
-set "PY_CMD="
-if exist "venv\Scripts\python.exe" (
-    set "PY_CMD=venv\Scripts\python.exe"
-    goto PYTHON_READY
-)
-if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
-    set "PY_CMD=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
-    goto PYTHON_READY
-)
-set "PY_CMD=python"
-
-:PYTHON_READY
-:: -------------------------------------------------------------------------------
-:: 3. KHỞI ĐỘNG FLASK BACKEND
-:: -------------------------------------------------------------------------------
-echo [2/4] Đang khởi chạy Flask Backend Server (Port 5001)...
+echo [2/4] Dang khoi chay Flask Backend Server (Port 5001)...
 start "EVI Backend Server" /min "%PY_CMD%" app.py
 
-:: Đợi backend sẵn sàng
+:: Doi backend san sang
 set "COUNT=0"
 :WAIT_SERVER
 ping 127.0.0.1 -n 2 >nul
@@ -52,41 +54,40 @@ powershell -Command "try { $client = New-Object System.Net.Sockets.TcpClient; $c
 if %ERRORLEVEL% EQU 0 goto SERVER_READY
 set /a COUNT+=1
 if %COUNT% GEQ 20 (
-    echo [CẢNH BÁO] Backend khởi động lâu hơn dự kiến, đang tiếp tục mở Tunnel...
+    echo [CANH BAO] Backend khoi dong lau hon du kien, dang tiep tuc mo Tunnel...
     goto SERVER_READY
 )
-echo       -> Đang chờ Backend phản hồi... (%COUNT%s)
+echo       -> Dang cho Backend phan hoi... (%COUNT%s)
 goto WAIT_SERVER
 
 :SERVER_READY
-echo     -> Flask Backend đã sẵn sàng trên cổng 5001!
+echo     -> Flask Backend da san sang tren cong 5001!
 echo.
 
 :: -------------------------------------------------------------------------------
-:: 4. KHỞI TẠO ĐƯỜNG LINK ONLINE CỐ ĐỊNH (NGROK & CLOUDFLARE)
+:: 4. KHOI TAO DUONG LINK ONLINE CO DINH (NGROK & CLOUDFLARE)
 :: -------------------------------------------------------------------------------
-echo [3/4] Đang kết nối đường link Online cố định (hardy-porthole-wildland.ngrok-free.dev)...
+echo [3/4] Dang ket noi duong link Online co dinh (hardy-porthole-wildland.ngrok-free.dev)...
 
-:: Đảm bảo ngrok.exe tồn tại
+:: Dam bao ngrok.exe ton tai va duoc Unblock
 if not exist "ngrok.exe" (
     powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object System.Net.WebClient).DownloadFile('https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip', 'ngrok.zip'); Expand-Archive -Path 'ngrok.zip' -DestinationPath '.' -Force; Remove-Item 'ngrok.zip' -ErrorAction SilentlyContinue"
 )
 
 if exist "ngrok.exe" (
-    "%~dp0ngrok.exe" config add-authtoken 3IBiTbkXguuBIBqAroSuk5Y3ugF_6yudsrKPch9sr97rURSqk
+    powershell -Command "Unblock-File ngrok.exe -ErrorAction SilentlyContinue" >nul 2>&1
+    "%~dp0ngrok.exe" config add-authtoken 3IBiTbkXguuBIBqAroSuk5Y3ugF_6yudsrKPch9sr97rURSqk >nul 2>&1
     start "EVI Ngrok Online Tunnel" "%~dp0ngrok.exe" http 5001 --domain=hardy-porthole-wildland.ngrok-free.dev
-    echo     -> Đã khởi động Ngrok Tunnel cố định!
-) else (
-    echo     -> [LƯU Ý] Chưa tìm thấy ngrok.exe. Đang tải tự động...
+    echo     -> Da khoi dong Ngrok Tunnel co dinh!
 )
 
-
-:: Bật thêm Cloudflare Tunnel dự phòng song song
+:: Bat them Cloudflare Tunnel du phong song song
 set "CF_LOG=%TEMP%\cloudflared_evi.log"
 if exist "%CF_LOG%" del /f /q "%CF_LOG%" >nul 2>&1
 set "CF_URL="
 
 if exist "cloudflared.exe" (
+    powershell -Command "Unblock-File cloudflared.exe -ErrorAction SilentlyContinue" >nul 2>&1
     start "EVI Cloudflare Tunnel" /min "%~dp0cloudflared.exe" tunnel --url http://127.0.0.1:5001 --logfile "%CF_LOG%"
     ping 127.0.0.1 -n 3 >nul
     if exist "%CF_LOG%" (
@@ -97,7 +98,7 @@ if exist "cloudflared.exe" (
 )
 
 :: -------------------------------------------------------------------------------
-:: 5. TÌM ĐỊA CHỈ IP MẠNG NỘI BỘ (LAN)
+:: 5. TIM DIA CHI IP MANG NOI BO (LAN)
 :: -------------------------------------------------------------------------------
 set "LAN_IP=127.0.0.1"
 for /f "usebackq tokens=*" %%I in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'Wi-Fi*','Ethernet*','vEthernet*' | Where-Object { $_.IPAddress -notlike '169.254*' -and $_.IPAddress -notlike '127.*' } | Select-Object -First 1).IPAddress"`) do (
@@ -106,34 +107,34 @@ for /f "usebackq tokens=*" %%I in (`powershell -NoProfile -Command "(Get-NetIPAd
 
 echo.
 echo ===============================================================================
-echo   🎉 HỆ THỐNG EVI DASHBOARD ĐÃ SẴN SÀNG HOẠT ĐỘNG 24/7!
+echo   🎉 HE THONG EVI DASHBOARD DA SAN SANG HOAT DONG 24/7!
 echo ===============================================================================
 echo.
-echo   🌐 1. ĐƯỜNG LINK ONLINE CỐ ĐỊNH VĨNH VIỄN (TRUY CẬP TỪ XA MỌI NƠI 24/7):
+echo   🌐 1. DUONG LINK ONLINE CO DINH VINH VIEN (TRUY CAP TU XA MOI NOI 24/7):
 echo      👉 https://hardy-porthole-wildland.ngrok-free.dev
 echo.
-echo      (Link này cố định trọn đời, không bao giờ thay đổi dù tắt mở Server!)
+echo      (Link nay co dinh tron doi, khong bao gio thay doi du tat mo Server!)
 echo.
 if defined CF_URL (
-    echo   🛡️ 2. ĐƯỜNG LINK ONLINE DỰ PHÒNG (CLOUDFLARE):
+    echo   🛡️ 2. DUONG LINK ONLINE DU PHONG (CLOUDFLARE):
     echo      👉 %CF_URL%
     echo.
 )
-echo   📶 3. TRUY CẬP CÙNG MẠNG WI-FI / MẠNG NỘI BỘ (LAN):
+echo   📶 3. TRUY CAP CUNG MANG WI-FI / MANG NOI BO (LAN):
 echo      👉 http://%LAN_IP%:5001
 echo.
-echo   💻 4. TRUY CẬP TRỰC TIẾP TRÊN MÁY SERVER NÀY:
+echo   💻 4. TRUY CAP TRUC TIEP TREN MAY SERVER NAY:
 echo      👉 http://127.0.0.1:5001
 echo.
 echo ===============================================================================
-echo   [LƯU Ý QUAN TRỌNG]:
-echo   • Giữ cửa sổ này mở để Server và Link Online tiếp tục hoạt động.
-echo   • Khi muốn dừng hệ thống, chạy file [4_DUNG_SERVER.bat] hoặc đóng cửa sổ này.
+echo   [LUU Y QUAN TRONG]:
+echo   • Giu 2 cua so nay mo de Server va Link Online tiep tuc hoat dong.
+echo   • Khi muon dung he thong, chay file [4_DUNG_SERVER.bat] hoac dong cua so nay.
 echo ===============================================================================
 echo.
 
-:: Tự động mở trình duyệt với domain cố định
+:: Tu dong mo trinh duyet
 start https://hardy-porthole-wildland.ngrok-free.dev
 
-echo Nhấn phím bất kỳ hoặc thu nhỏ cửa sổ này để Server chạy ngầm...
+echo Nhan phim bat ky hoac thu nho cua so nay de Server chay ngam...
 pause >nul
