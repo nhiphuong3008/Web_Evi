@@ -78,24 +78,31 @@ if not exist "%PY_INSTALLER%" (
     exit /b 1
 )
 
-echo     -> Đang tiến hành cài đặt Python 3.12 tự động (khoảng 30-45 giây)...
-"%PY_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_pip=1 Include_test=0 SimpleInstall=1
-timeout /t 8 /nobreak >nul
+echo     -> Đang tiến hành cài đặt Python 3.12 tự động (vui lòng chờ trong giây lát)...
+start /wait "" "%PY_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_pip=1 Include_test=0 SimpleInstall=1
 
-set "PATH=%LOCALAPPDATA%\Programs\Python\Python312;%LOCALAPPDATA%\Programs\Python\Python312\Scripts;%PATH%"
-
+:: Chờ tối đa 30s để file python.exe xuất hiện
+set "WAIT_PY=0"
+:CHECK_PY_INSTALLED
 if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
     set "PYTHON_EXE=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
     goto PYTHON_FOUND
 )
+if exist "%ProgramFiles%\Python312\python.exe" (
+    set "PYTHON_EXE=%ProgramFiles%\Python312\python.exe"
+    goto PYTHON_FOUND
+)
+ping 127.0.0.1 -n 3 >nul
+set /a WAIT_PY+=2
+if %WAIT_PY% LEQ 30 goto CHECK_PY_INSTALLED
+
+set "PATH=%LOCALAPPDATA%\Programs\Python\Python312;%LOCALAPPDATA%\Programs\Python\Python312\Scripts;%ProgramFiles%\Python312;%ProgramFiles%\Python312\Scripts;%PATH%"
 
 python -c "import sys; exit(0)" >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
     set "PYTHON_EXE=python"
     goto PYTHON_FOUND
 )
-
-echo     -> Đã cài xong Python 3.12.
 
 :: -------------------------------------------------------------------------------
 :: BƯỚC 2: TẠO VÀ CẤU HÌNH MÔI TRƯỜNG ẢO VENV
