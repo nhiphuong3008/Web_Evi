@@ -1,5 +1,14 @@
 # Nhật ký thay đổi (Changelog) - EVI Dashboard Web App
 
+## [v5.3.2] - 2026-08-21
+### 🛡️ Chuẩn Hóa Toàn Bộ Batch Script Sang 100% Tiếng Việt Không Dấu (ASCII) & Hỗ Trợ Ổ Đĩa D:
+- **Chuẩn Hóa 100% Tiếng Việt Không Dấu (Plain ASCII)**:
+  - Loại bỏ hoàn toàn dấu tiếng Việt và UTF-8 BOM trong toàn bộ các file batch (`0_KIEM_TRA_SERVER.bat`, `1_CAI_DAT_SERVER_TU_DONG.bat`, `2_CHAY_SERVER_VA_LINK_ONLINE.bat`, `3_CAP_NHAT_CODE.bat`, `4_DUNG_SERVER.bat`, `CHAY_NGROK_ONLINE.bat`).
+  - Đảm bảo tương thích 100% với Windows Command Prompt (CMD) trên mọi phiên bản Windows mà không bao giờ bị lỗi hiển thị hay ngắt lệnh sớm.
+- **Hỗ Trợ Toàn Diện Ổ Đĩa D: (`D:\Vicare_web`) & Linh Hoạt Mọi Đường Dẫn**:
+  - Script tự động nhận diện đường dẫn thực thi linh hoạt qua `%~dp0`.
+  - Tự động thêm ngoại lệ Windows Defender cho `D:\Vicare_web` và `%~dp0` để không bao giờ bị chặn công cụ mạng `ngrok.exe` hay `cloudflared.exe`.
+
 ## [v5.3.1] - 2026-08-21
 ### 🚀 Hoàn Thiện Bộ Cài Đặt & Vận Hành Server Tự Động 100% Cho Máy Windows Mới
 - **Đóng Gói File All-in-One Setup & Run (`CAI_DAT_VA_CHAY_TAT_CA.bat`)**:
