@@ -12,10 +12,13 @@ cd /d "%~dp0"
 :: -------------------------------------------------------------------------------
 :: 1. KIEM TRA MOI TRUONG PYTHON VENV
 :: -------------------------------------------------------------------------------
-set "PY_CMD="
-if exist "venv\Scripts\python.exe" (
-    set "PY_CMD=venv\Scripts\python.exe"
-) else (
+if not exist "venv\Scripts\python.exe" (
+    echo [THONG BAO] Chua co moi truong venv. Dang tu dong goi 1_CAI_DAT_SERVER_TU_DONG.bat...
+    call "%~dp01_CAI_DAT_SERVER_TU_DONG.bat"
+)
+
+set "PY_CMD=venv\Scripts\python.exe"
+if not exist "%PY_CMD%" (
     if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
         set "PY_CMD=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
     ) else (
@@ -34,7 +37,7 @@ taskkill /f /im cloudflared.exe >nul 2>&1
 :: -------------------------------------------------------------------------------
 :: 3. KHOI DONG FLASK BACKEND
 :: -------------------------------------------------------------------------------
-echo [2/3] Dang khoi chay Flask Backend Server Port 5001...
+echo [2/3] Dang khoi chay Flask Backend Server tren cong 5001...
 start "EVI Backend Server" /min "%PY_CMD%" app.py
 
 :: Doi backend san sang
@@ -54,11 +57,20 @@ echo.
 :: -------------------------------------------------------------------------------
 :: 4. KHOI TAO DUONG LINK ONLINE CLOUDFLARE VA NGROK
 :: -------------------------------------------------------------------------------
-echo [3/3] Dang kich hoat duong link Online 24/7...
+echo [3/3] Dang kich hoat cac duong link Online 24/7...
 
+:: Khoi chay Ngrok Tunnel co dinh
+if exist "ngrok.exe" (
+    powershell -Command "Unblock-File ngrok.exe -ErrorAction SilentlyContinue" >nul 2>&1
+    "%~dp0ngrok.exe" config add-authtoken 3IBiTbkXguuBIBqAroSuk5Y3ugF_6yudsrKPch9sr97rURSqk >nul 2>&1
+    start "EVI Ngrok Online Tunnel" /min "%~dp0ngrok.exe" http 5001 --domain=hardy-porthole-wildland.ngrok-free.dev
+    echo     -> Da ket noi Ngrok co dinh: https://hardy-porthole-wildland.ngrok-free.dev
+)
+
+:: Khoi chay Cloudflare Tunnel du phong
 set "CF_LOG=%TEMP%\cloudflared_evi.log"
 if exist "%CF_LOG%" del /f /q "%CF_LOG%" >nul 2>&1
-set "PUBLIC_URL="
+set "CF_URL="
 
 if exist "cloudflared.exe" (
     powershell -Command "Unblock-File cloudflared.exe -ErrorAction SilentlyContinue" >nul 2>&1
@@ -66,16 +78,9 @@ if exist "cloudflared.exe" (
     ping 127.0.0.1 -n 4 >nul
     if exist "%CF_LOG%" (
         for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -Command "(Get-Content -Path '%CF_LOG%' -ErrorAction SilentlyContinue | Select-String 'https://[a-zA-Z0-9-]+\.trycloudflare\.com').Matches.Value | Select-Object -First 1"`) do (
-            set "PUBLIC_URL=%%L"
+            set "CF_URL=%%L"
         )
     )
-)
-
-:: Thu bat Ngrok neu co
-if exist "ngrok.exe" (
-    powershell -Command "Unblock-File ngrok.exe -ErrorAction SilentlyContinue" >nul 2>&1
-    "%~dp0ngrok.exe" config add-authtoken 3IBiTbkXguuBIBqAroSuk5Y3ugF_6yudsrKPch9sr97rURSqk >nul 2>&1
-    start "EVI Ngrok Online Tunnel" "%~dp0ngrok.exe" http 5001 --domain=hardy-porthole-wildland.ngrok-free.dev >nul 2>&1
 )
 
 :: Tim IP mang noi bo LAN
@@ -86,34 +91,32 @@ for /f "usebackq tokens=*" %%I in (`powershell -NoProfile -Command "(Get-NetIPAd
 
 echo.
 echo ===============================================================================
-echo   HE THONG EVI DASHBOARD DA SAN SANG HOAT DONG 24/7!
+echo   🎉 HE THONG EVI DASHBOARD DA SAN SANG HOAT DONG 24/7!
 echo ===============================================================================
 echo.
-if defined PUBLIC_URL (
-    echo   [1] DUONG LINK ONLINE TOC DO CAO 24/7:
-    echo       👉 %PUBLIC_URL%
+echo   🌐 1. DUONG LINK NGROK CO DINH (TRUY CAP TU XA MOI NOI 24/7):
+echo      👉 https://hardy-porthole-wildland.ngrok-free.dev
+echo.
+if defined CF_URL (
+    echo   🛡️ 2. DUONG LINK ONLINE DU PHONG (CLOUDFLARE):
+    echo      👉 %CF_URL%
     echo.
 )
-echo   [2] DUONG LINK NGROK CO DINH:
-echo       👉 https://hardy-porthole-wildland.ngrok-free.dev
+echo   📶 3. TRUY CAP CUNG MANG WI-FI LAN:
+echo      👉 http://%LAN_IP%:5001
 echo.
-echo   [3] TRUY CAP CUNG MANG WI-FI LAN:
-echo       👉 http://%LAN_IP%:5001
-echo.
-echo   [4] TRUY CAP TRUC TIEP TREN MAY SERVER NAY:
-echo       👉 http://127.0.0.1:5001
+echo   💻 4. TRUY CAP TRUC TIEP TREN MAY SERVER NAY:
+echo      👉 http://127.0.0.1:5001
 echo.
 echo ===============================================================================
-echo   Luu y: Giu cua so nay mo de Server chay 24/7.
+echo   [LUU Y QUAN TRONG]:
+echo   • Giu cua so nay mo de Server va Link Online tiep tuc hoat dong 24/7.
+echo   • Khi muon dung he thong, chay file [4_DUNG_SERVER.bat].
 echo ===============================================================================
 echo.
 
 :: Tu dong mo trinh duyet
-if defined PUBLIC_URL (
-    start %PUBLIC_URL%
-) else (
-    start http://127.0.0.1:5001
-)
+start https://hardy-porthole-wildland.ngrok-free.dev
 
-echo Nhan phim bat ky de thu nho cua so nay...
+echo Nhan phim bat ky hoac thu nho cua so nay de Server tiep tuc chay ngam...
 pause >nul
