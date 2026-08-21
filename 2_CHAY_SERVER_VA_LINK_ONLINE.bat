@@ -73,9 +73,13 @@ if not exist "ngrok.exe" (
 )
 
 if exist "ngrok.exe" (
-    "%~dp0ngrok.exe" config add-authtoken 3IBiTbkXguuBIBqAroSuk5Y3ugF_6yudsrKPch9sr97rURSqk >nul 2>&1
-    start "EVI Ngrok Tunnel" /min "%~dp0ngrok.exe" http 5001 --domain=hardy-porthole-wildland.ngrok-free.dev
+    "%~dp0ngrok.exe" config add-authtoken 3IBiTbkXguuBIBqAroSuk5Y3ugF_6yudsrKPch9sr97rURSqk
+    start "EVI Ngrok Online Tunnel" "%~dp0ngrok.exe" http 5001 --domain=hardy-porthole-wildland.ngrok-free.dev
+    echo     -> Đã khởi động Ngrok Tunnel cố định!
+) else (
+    echo     -> [LƯU Ý] Chưa tìm thấy ngrok.exe. Đang tải tự động...
 )
+
 
 :: Bật thêm Cloudflare Tunnel dự phòng song song
 set "CF_LOG=%TEMP%\cloudflared_evi.log"
